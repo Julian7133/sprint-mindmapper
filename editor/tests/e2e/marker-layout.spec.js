@@ -50,7 +50,7 @@ test.describe('Marker picker layout', () => {
   test('every picker button slot matches the grid cell size', async ({ page }) => {
     const slotSize = await page
       .locator('.marker-picker')
-      .evaluate((el) => parseFloat(getComputedStyle(el).getPropertyValue('--marker-size')));
+      .evaluate((el) => parseFloat(window.getComputedStyle(el).getPropertyValue('--marker-size')));
 
     expect(slotSize).toBe(32);
 
@@ -66,7 +66,6 @@ test.describe('Marker picker layout', () => {
   });
 
   test('task row does not exceed priority row width', async ({ page }) => {
-    const metrics = await rowMetrics(page);
     const bySection = Object.fromEntries(
       await page.locator('.marker-picker-section').evaluateAll((sections) =>
         sections.map((section) => {

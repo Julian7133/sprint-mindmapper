@@ -3,14 +3,12 @@ import { describe, it, before, after } from 'node:test';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { fileURLToPath } from 'node:url';
 import {
   resolveWorkspaceFile,
   listMarkdownFiles,
   isPathInsideRoot,
 } from '../../server.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let tmpDir;
 
 before(async () => {
