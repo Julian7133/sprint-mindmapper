@@ -67,7 +67,8 @@ On macOS, plain digit keys are used instead of Option+Shift combos (those produc
 ```bash
 cd editor
 npm install
+npm run lint          # ESLint
 npm run test          # unit tests + markdown round-trip
 npm run test:e2e      # Playwright browser tests
-npm run test:all      # both
+npm run test:all      # lint + unit + e2e
 ```

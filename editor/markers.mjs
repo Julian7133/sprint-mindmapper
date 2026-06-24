@@ -263,9 +263,9 @@ export function syncPickerSelection(pickerEl, node) {
   for (const btn of pickerEl.querySelectorAll('.marker-pick-btn')) {
     const key = btn.dataset.section;
     const level = Number(btn.dataset.level);
-    let active = false;
-    if (key === 'taskProgress') active = node?.taskProgress === level;
-    else active = node?.[key] === level;
+    const active = key === 'taskProgress'
+      ? node?.taskProgress === level
+      : node?.[key] === level;
     btn.classList.toggle('selected', !!active);
   }
 }

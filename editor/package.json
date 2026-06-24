@@ -3,15 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint": "eslint .",
     "test": "node --test tests/unit/*.test.mjs && node test-roundtrip.mjs ../sprint-tasks.md",
     "test:e2e": "playwright test",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run lint && npm run test && npm run test:e2e"
   },
   "dependencies": {
     "fast-xml-parser": "^5.2.5",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.49.1",
+    "eslint": "^10.5.0",
+    "globals": "^17.7.0"
   }
 }

@@ -3,12 +3,7 @@
  * Shared by browser (app.js) and Node (test-roundtrip.mjs, server).
  */
 
-import {
-  parseLineContent,
-  markerPrefixHTML,
-  badgeHTML,
-  priorityMarkerHTML,
-} from './markers.mjs';
+import { parseLineContent, markerPrefixHTML } from './markers.mjs';
 
 export {
   badgeHTML,
