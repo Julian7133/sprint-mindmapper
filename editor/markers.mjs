@@ -134,6 +134,13 @@ export function parseLineContent(text) {
   }
 
   result.topic = rest.trim();
+
+  const linkMatch = result.topic.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  if (linkMatch) {
+    result.topic = linkMatch[1];
+    result.hyperLink = linkMatch[2];
+  }
+
   return result;
 }
 
