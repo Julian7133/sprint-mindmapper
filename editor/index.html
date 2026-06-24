@@ -18,7 +18,7 @@
     <header class="toolbar">
       <div class="toolbar-left">
         <h1>Sprint Mindmap Editor</h1>
-        <span id="file-name" class="file-name"></span>
+        <button type="button" id="file-name" class="file-name" title="Open file panel"></button>
       </div>
       <div class="toolbar-actions">
         <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel (Ctrl/Cmd+Shift+M)">
@@ -49,6 +49,20 @@
 
     <main id="map" data-testid="map" tabindex="-1"></main>
 
+
+    <aside id="file-panel" class="file-panel hidden" data-testid="file-panel" aria-label="Workspace files">
+      <div class="panel-header">
+        <strong>Files</strong>
+        <button type="button" id="btn-file-close" class="panel-close" aria-label="Close">×</button>
+      </div>
+      <ul id="file-list" class="file-list"></ul>
+      <div class="panel-actions">
+        <button type="button" id="btn-new-file">New file</button>
+        <button type="button" id="btn-import-file">Import…</button>
+        
+      </div>
+      <input type="file" id="import-input" accept=".opml,.mm,.xmind" hidden />
+    </aside>
     <aside id="marker-picker" class="marker-picker hidden" data-testid="marker-picker" aria-label="XMind markers"></aside>
 
     <aside id="priority-filter" class="priority-filter hidden" aria-label="Priority filter">
