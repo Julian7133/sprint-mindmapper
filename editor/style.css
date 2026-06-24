@@ -202,7 +202,7 @@ body {
   vertical-align: middle;
 }
 
-.marker-task {
+.node-markers .marker-task {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -215,32 +215,33 @@ body {
   color: #43a047;
   vertical-align: middle;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.marker-task.task-6 {
+.node-markers .marker-task.task-6 {
   background: #43a047;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
 }
 
-.marker-task.task-1 {
+.node-markers .marker-task.task-1 {
   background: conic-gradient(#43a047 0deg 45deg, transparent 45deg);
 }
 
-.marker-task.task-2 {
+.node-markers .marker-task.task-2 {
   background: conic-gradient(#43a047 0deg 90deg, transparent 90deg);
 }
 
-.marker-task.task-3 {
+.node-markers .marker-task.task-3 {
   background: conic-gradient(#43a047 0deg 180deg, transparent 180deg);
 }
 
-.marker-task.task-4 {
+.node-markers .marker-task.task-4 {
   background: conic-gradient(#43a047 0deg 270deg, transparent 270deg);
 }
 
-.marker-task.task-5 {
+.node-markers .marker-task.task-5 {
   background: conic-gradient(#43a047 0deg 315deg, transparent 315deg);
 }
 
@@ -292,8 +293,15 @@ body {
   left: 24px;
   bottom: 24px;
   z-index: 25;
-  width: min(420px, calc(100vw - 48px));
-  max-height: min(70vh, 520px);
+  --marker-size: 32px;
+  --marker-gap: 6px;
+  --marker-slots: 8;
+  --marker-track-width: calc(
+    var(--marker-slots) * var(--marker-size) +
+      (var(--marker-slots) - 1) * var(--marker-gap)
+  );
+  width: calc(var(--marker-track-width) + 28px);
+  max-height: min(70vh, 560px);
   overflow: auto;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.98);
@@ -332,54 +340,140 @@ body {
   margin-bottom: 10px;
 }
 
+.marker-picker-section:last-child {
+  margin-bottom: 0;
+}
+
 .marker-picker-label {
   font-size: 12px;
   color: #6b7280;
   margin-bottom: 6px;
+  line-height: 1.2;
 }
 
 .marker-picker-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(var(--marker-slots), minmax(0, var(--marker-size)));
+  gap: var(--marker-gap);
+  width: var(--marker-track-width);
+  max-width: 100%;
 }
 
-.marker-pick-btn,
-.marker-pick-clear {
-  width: 28px;
-  height: 28px;
+.marker-picker .marker-pick-btn,
+.marker-picker .marker-pick-clear {
+  width: var(--marker-size);
+  height: var(--marker-size);
+  min-width: 0;
+  max-width: var(--marker-size);
+  min-height: var(--marker-size);
+  max-height: var(--marker-size);
+  margin: 0;
   padding: 0;
   border: 1px solid #e5e7eb;
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
-.marker-pick-btn.marker-task {
-  width: 28px;
-  height: 28px;
+.marker-picker .marker-pick-btn.marker-task {
+  border: 2px solid #43a047;
   border-radius: 50%;
+  font-size: 11px;
+  color: #43a047;
+  background: #fff;
 }
 
-.marker-pick-btn.selected {
+.marker-picker .marker-pick-btn.marker-task.task-6 {
+  background: #43a047;
+  color: #fff;
+  border-color: #43a047;
+}
+
+.marker-picker .marker-pick-btn.marker-task.task-1 {
+  background: conic-gradient(#43a047 0deg 45deg, #fff 45deg);
+}
+
+.marker-picker .marker-pick-btn.marker-task.task-2 {
+  background: conic-gradient(#43a047 0deg 90deg, #fff 90deg);
+}
+
+.marker-picker .marker-pick-btn.marker-task.task-3 {
+  background: conic-gradient(#43a047 0deg 180deg, #fff 180deg);
+}
+
+.marker-picker .marker-pick-btn.marker-task.task-4 {
+  background: conic-gradient(#43a047 0deg 270deg, #fff 270deg);
+}
+
+.marker-picker .marker-pick-btn.marker-task.task-5 {
+  background: conic-gradient(#43a047 0deg 315deg, #fff 315deg);
+}
+
+.marker-picker .marker-pick-btn.pri-1 {
+  background: #e53935;
+  color: #fff;
+  border-color: #e53935;
+}
+
+.marker-picker .marker-pick-btn.pri-2 {
+  background: #fb8c00;
+  color: #333;
+  border-color: #fb8c00;
+}
+
+.marker-picker .marker-pick-btn.pri-3 {
+  background: #fdd835;
+  color: #333;
+  border-color: #fdd835;
+}
+
+.marker-picker .marker-pick-btn.pri-4 {
+  background: #43a047;
+  color: #333;
+  border-color: #43a047;
+}
+
+.marker-picker .marker-pick-btn.pri-5 {
+  background: #1e88e5;
+  color: #fff;
+  border-color: #1e88e5;
+}
+
+.marker-picker .marker-pick-btn.pri-6 {
+  background: #8e24aa;
+  color: #fff;
+  border-color: #8e24aa;
+}
+
+.marker-picker .marker-pick-btn.pri-7 {
+  background: #90a4ae;
+  color: #fff;
+  border-color: #90a4ae;
+}
+
+.marker-picker .marker-pick-btn.selected {
   box-shadow: 0 0 0 2px #60a5fa;
 }
 
-.marker-pick-clear {
+.marker-picker .marker-pick-clear {
+  grid-column: 8;
   border-radius: 8px;
   color: #9ca3af;
-  font-size: 16px;
+  font-size: 18px;
+  background: #fff;
 }
 
-.marker-pick-btn:hover,
-.marker-pick-clear:hover {
+.marker-picker .marker-pick-btn:hover,
+.marker-picker .marker-pick-clear:hover {
   filter: brightness(0.95);
 }
 

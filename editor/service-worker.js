@@ -1,4 +1,4 @@
-const CACHE = 'sprint-mindmap-editor-v2';
+const CACHE = 'sprint-mindmap-editor-v3';
 
 const SHELL = [
   '/',
