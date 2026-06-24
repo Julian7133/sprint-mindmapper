@@ -178,6 +178,16 @@ body {
   background: #fff;
 }
 
+/* Mind Elixir's inline edit box (contenteditable) only sets a min-width, so long
+   text grows on a single line and overlaps sibling nodes and the link curves.
+   Cap its width and let it wrap instead. */
+#map #input-box {
+  max-width: 340px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .pri-badge,
 .marker-pri,
 .marker-icon {
@@ -216,6 +226,14 @@ body {
   vertical-align: middle;
   flex-shrink: 0;
   box-sizing: border-box;
+}
+
+.node-markers .marker-task-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2e7d32;
+  margin-right: 2px;
+  vertical-align: middle;
 }
 
 .node-markers .marker-task.task-6 {
