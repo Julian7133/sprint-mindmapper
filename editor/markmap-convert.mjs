@@ -59,6 +59,7 @@ function lineToNode(level, rawText, idCounter, nextId) {
     if (parsed.flag) node.flag = parsed.flag;
     if (parsed.star) node.star = parsed.star;
     if (parsed.people) node.people = parsed.people;
+    if (parsed.hyperLink) node.hyperLink = parsed.hyperLink;
   }
   return node;
 }
@@ -142,7 +143,11 @@ function walkNode(node, depth, out) {
           : `${' '.repeat((depth - 3) * 2)}- `;
 
   const markers = depth > 0 ? markerPrefixHTML(node) : '';
-  const text = markers ? `${markers}${node.topic}` : node.topic;
+  let topicText = node.topic;
+  if (node.hyperLink) {
+    topicText = `[${node.topic}](${node.hyperLink})`;
+  }
+  const text = markers ? `${markers}${topicText}` : topicText;
 
   if (depth === 1) out.push('');
   out.push(prefix + text);

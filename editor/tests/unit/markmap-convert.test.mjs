@@ -71,4 +71,31 @@ describe('markmap-convert', () => {
     assert.deepEqual(norm(a.root), norm(b.root));
     assert.equal(a.frontmatter.trim(), b.frontmatter.trim());
   });
+
+  it('round-trips hyperlinks', () => {
+    const md = `---
+markmap:
+  colorFreezeLevel: 2
+---
+
+# Root
+
+## Branch
+### [Docs](https://example.com/docs)
+- [Nested link](https://example.com/nested)
+`;
+    const a = parseMarkdown(md);
+    assert.equal(a.root.children[0].children[0].topic, 'Docs');
+    assert.equal(a.root.children[0].children[0].hyperLink, 'https://example.com/docs');
+    assert.equal(
+      a.root.children[0].children[0].children[0].hyperLink,
+      'https://example.com/nested'
+    );
+
+    const out = serializeMarkdown(a.frontmatter, a.root);
+    const b = parseMarkdown(out);
+    assert.equal(b.root.children[0].children[0].hyperLink, 'https://example.com/docs');
+    assert.equal(b.root.children[0].children[0].topic, 'Docs');
+    assert.match(out, /\[Docs\]\(https:\/\/example\.com\/docs\)/);
+  });
 });

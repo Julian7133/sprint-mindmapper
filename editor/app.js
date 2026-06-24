@@ -41,7 +41,27 @@ const mind = new MindElixir({
   draggable: true,
   editable: true,
   keypress: true,
-  contextMenu: true,
+  contextMenu: {
+    extend: [
+      {
+        name: 'Set link…',
+        onclick: () => {
+          const node = getSelectedNodeObj();
+          if (!node || node.id === 'root') return;
+          const url = prompt('Link URL', node.hyperLink || 'https://');
+          if (url === null) return;
+          if (url.trim()) {
+            node.hyperLink = url.trim();
+          } else {
+            delete node.hyperLink;
+          }
+          mind.refresh();
+          decorate();
+          scheduleDraftSave();
+        },
+      },
+    ],
+  },
   toolBar: true,
   allowUndo: true,
   newTopicName: 'New task',
