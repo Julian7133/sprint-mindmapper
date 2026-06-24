@@ -21,9 +21,9 @@ test.describe('Sprint Mindmap Editor', () => {
     await expect(page.getByText('Critical task')).toBeVisible();
   });
 
-  test('assigns priority with plain digit hotkey', async ({ page }) => {
+  test('assigns priority with Cmd/Ctrl+digit hotkey', async ({ page }) => {
     await selectNode(page, 'Task one');
-    await page.keyboard.press('2');
+    await page.keyboard.press('Control+2');
 
     const selected = page.locator('me-tpc.selected');
     await expect(selected.locator('.marker-pri')).toHaveText('2');
@@ -48,12 +48,30 @@ test.describe('Sprint Mindmap Editor', () => {
     await expect(selected.locator('.marker-star')).toHaveText('★');
   });
 
-  test('clears priority with 0 key', async ({ page }) => {
+  test('clears priority with Cmd/Ctrl+Shift+0', async ({ page }) => {
     await selectNode(page, 'Critical task');
     await expect(page.locator('me-tpc.selected .marker-pri')).toHaveText('1');
 
-    await page.keyboard.press('0');
+    await page.keyboard.press('Control+Shift+0');
     await expect(page.locator('me-tpc.selected .marker-pri')).toHaveCount(0);
+  });
+
+  test('type-to-edit overwrites label on selected node', async ({ page }) => {
+    await selectNode(page, 'Task one');
+    await page.keyboard.type('Renamed');
+    await page.keyboard.press('Enter');
+
+    await expect(page.getByTestId('map').getByText('Renamed')).toBeVisible();
+    await expect(page.getByTestId('map').getByText('Task one')).toHaveCount(0);
+  });
+
+  test('Enter creates sibling and accepts immediate typing', async ({ page }) => {
+    await selectNode(page, 'Task one');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('New sibling');
+    await page.keyboard.press('Enter');
+
+    await expect(page.getByTestId('map').getByText('New sibling')).toBeVisible();
   });
 
   test('priority filter dims other priorities when enabled', async ({ page }) => {

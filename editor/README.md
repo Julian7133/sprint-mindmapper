@@ -33,8 +33,10 @@ The editor is a **Progressive Web App**. The local server must be running (`node
 ## Workflow
 
 1. Edit tasks on the canvas (Tab = child, Enter = sibling, drag to reorder).
+   - **Type-to-edit**: select a task and start typing to replace its label.
+   - **Preserve edit**: double-click or F2 to edit with existing text intact.
 2. Select a task, then set markers in the **Markers** panel (bottom-left):
-   - **Priority** 1–7 (quick: keys **1…5**, clear **0**)
+   - **Priority** 1–7 (quick: **Cmd/Ctrl+1…7**, clear **Cmd/Ctrl+Shift+0**)
    - **Task** progress (start → 12% → … → done)
    - **Flag**, **Star**, **People** (colored 1–7)
    - Click again to clear; **×** clears a row
@@ -51,16 +53,16 @@ Draft cache: `sprint-tasks.md.editor-draft` (same folder as the markdown file).
 |-----|--------|
 | Tab | Add child |
 | Enter | Add sibling |
-| 1…5 | Set priority (task selected) |
-| 0 | Clear priority |
-| Ctrl/Cmd+Shift+M | Toggle Markers panel |
+| Type (node selected) | Overwrite label (type-to-edit) |
+| Double-click / F2 | Edit label (preserve existing text) |
+| Cmd/Ctrl+1…7 | Set priority (task selected) |
+| Cmd/Ctrl+Shift+0 | Clear priority |
+| Cmd/Ctrl+Shift+M | Toggle Markers panel |
 | Toolbar Markers panel | Priority, task, flag, star, people |
-| Ctrl/Cmd+Shift+P | Toggle same-priority filter |
-| Ctrl/Cmd+S | Save to markdown + render markmap |
+| Cmd/Ctrl+Shift+P | Toggle same-priority filter |
+| Cmd/Ctrl+S | Save to markdown + render markmap |
 | F1 / Fit | Center map |
 | Space | Expand/collapse selected node |
-
-On macOS, plain digit keys are used instead of Option+Shift combos (those produce special characters and are unreliable in browsers).
 
 ## Tests
 

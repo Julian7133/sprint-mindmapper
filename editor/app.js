@@ -7,6 +7,7 @@ import {
   applyPriorityToNode,
   PRIORITY_HOTKEY_HINT,
 } from './priority-hotkeys.mjs';
+import { handleTypeToEdit } from './type-to-edit.mjs';
 
 const statusEl = document.getElementById('status');
 const fileNameEl = document.getElementById('file-name');
@@ -198,6 +199,15 @@ function setPriority(priorityValue) {
 
 function focusMap() {
   mind.container.focus();
+}
+
+function focusMapIfNotEditing() {
+  if (isEditing() || document.getElementById('input-box')) return;
+  focusMap();
+}
+
+function focusInputBox() {
+  requestAnimationFrame(() => document.getElementById('input-box')?.focus());
 }
 
 function scheduleDraftSave() {
@@ -451,14 +461,14 @@ function setupBus() {
     if (nodes?.length) {
       selectedId = nodes[nodes.length - 1]?.id ?? null;
       decorate();
-      focusMap();
+      focusMapIfNotEditing();
     }
   });
 
   mind.bus.addListener('selectNewNode', (nodeObj) => {
     selectedId = nodeObj?.id ?? null;
     decorate();
-    focusMap();
+    focusMapIfNotEditing();
   });
 
   mind.bus.addListener('unselectNodes', () => {
@@ -468,7 +478,10 @@ function setupBus() {
     }
   });
 
-  mind.bus.addListener('operation', scheduleDraftSave);
+  mind.bus.addListener('operation', (op) => {
+    if (op?.name === 'beginEdit') focusInputBox();
+    scheduleDraftSave();
+  });
   mind.bus.addListener('expandNode', scheduleDraftSave);
 }
 
@@ -481,6 +494,7 @@ function bindHotkeys() {
   mind.container.addEventListener(
     'keydown',
     (e) => {
+      if (handleTypeToEdit(e, mind, isEditing)) return;
       if (handlePriorityHotkey(e)) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
@@ -536,21 +550,10 @@ function handlePriorityHotkey(e) {
   const priorityValue = parsePriorityHotkey(e);
   if (priorityValue === undefined) return false;
 
-  const isPlain =
-    !e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey;
-  if (isPlain && !isMapPriorityContext()) return false;
-
   if (!setPriority(priorityValue)) return false;
 
   e.preventDefault();
   e.stopImmediatePropagation();
-  return true;
-}
-
-function isMapPriorityContext() {
-  if (!getSelectedNodeObj()) return false;
-  const active = document.activeElement;
-  if (active?.closest('header.toolbar button, .marker-picker')) return false;
   return true;
 }
 
