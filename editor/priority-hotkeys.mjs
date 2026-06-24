@@ -1,6 +1,7 @@
-/** Priority input — plain digits (Mac-friendly) + Option+Shift+digit via event.code. */
+/** Priority input — Cmd/Ctrl+digit 1–7; Cmd/Ctrl+Shift+0 to clear. */
 
-export const PRIORITY_HOTKEY_HINT = '1…5 priority · 0 clear · Markers panel for task/flag/star';
+export const PRIORITY_HOTKEY_HINT =
+  'Cmd+1…7 priority · Cmd+Shift+0 clear · Markers panel for task/flag/star';
 
 const CODE_TO_PRIORITY = {
   Digit1: 1,
@@ -8,40 +9,23 @@ const CODE_TO_PRIORITY = {
   Digit3: 3,
   Digit4: 4,
   Digit5: 5,
-  Digit0: null,
+  Digit6: 6,
+  Digit7: 7,
 };
 
-function priorityFromCode(code) {
-  if (Object.hasOwn(CODE_TO_PRIORITY, code)) {
-    return CODE_TO_PRIORITY[code];
-  }
-  return undefined;
-}
-
 /**
- * @returns {number|null|undefined} priority 1-5, null to clear, undefined if not a hotkey
+ * @returns {number|null|undefined} priority 1-7, null to clear, undefined if not a hotkey
  */
 export function parsePriorityHotkey(event) {
-  const fromCode = priorityFromCode(event.code);
+  const hasMod = event.ctrlKey || event.metaKey;
+  if (!hasMod || event.altKey) return undefined;
 
-  if (
-    !event.altKey &&
-    !event.shiftKey &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    fromCode !== undefined
-  ) {
-    return fromCode;
+  if (event.shiftKey && event.code === 'Digit0') {
+    return null;
   }
 
-  if (
-    event.altKey &&
-    event.shiftKey &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    fromCode !== undefined
-  ) {
-    return fromCode;
+  if (!event.shiftKey && Object.hasOwn(CODE_TO_PRIORITY, event.code)) {
+    return CODE_TO_PRIORITY[event.code];
   }
 
   return undefined;

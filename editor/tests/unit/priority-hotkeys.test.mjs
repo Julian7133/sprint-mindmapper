@@ -18,27 +18,32 @@ function keyEvent(overrides) {
 }
 
 describe('priority-hotkeys', () => {
-  it('recognizes plain digit keys via event.code (macOS friendly)', () => {
-    assert.equal(parsePriorityHotkey(keyEvent({ code: 'Digit3' })), 3);
-    assert.equal(parsePriorityHotkey(keyEvent({ code: 'Digit0' })), null);
+  it('recognizes Cmd/Ctrl+Digit1…7', () => {
+    assert.equal(parsePriorityHotkey(keyEvent({ ctrlKey: true, code: 'Digit3' })), 3);
+    assert.equal(parsePriorityHotkey(keyEvent({ metaKey: true, code: 'Digit7' })), 7);
   });
 
-  it('recognizes Option+Shift+digit via event.code when key is a special char', () => {
+  it('recognizes Cmd/Ctrl+Shift+Digit0 to clear', () => {
+    assert.equal(
+      parsePriorityHotkey(keyEvent({ ctrlKey: true, shiftKey: true, code: 'Digit0' })),
+      null
+    );
+    assert.equal(
+      parsePriorityHotkey(keyEvent({ metaKey: true, shiftKey: true, code: 'Digit0' })),
+      null
+    );
+  });
+
+  it('ignores plain digits (reserved for type-to-edit)', () => {
+    assert.equal(parsePriorityHotkey(keyEvent({ code: 'Digit3' })), undefined);
+    assert.equal(parsePriorityHotkey(keyEvent({ code: 'Digit0' })), undefined);
+  });
+
+  it('ignores Option+Shift+digit fallback', () => {
     assert.equal(
       parsePriorityHotkey(
         keyEvent({ altKey: true, shiftKey: true, key: '¡', code: 'Digit1' })
       ),
-      1
-    );
-  });
-
-  it('ignores Ctrl/Cmd+ digit', () => {
-    assert.equal(
-      parsePriorityHotkey(keyEvent({ ctrlKey: true, code: 'Digit3' })),
-      undefined
-    );
-    assert.equal(
-      parsePriorityHotkey(keyEvent({ metaKey: true, code: 'Digit3' })),
       undefined
     );
   });
