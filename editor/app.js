@@ -1,0 +1,428 @@
+import MindElixir from './vendor/MindElixir.js';
+import { parseMarkdown, serializeMarkdown } from './markmap-convert.mjs';
+import {
+  parsePriorityHotkey,
+  applyPriorityToNode,
+  PRIORITY_HOTKEY_HINT,
+} from './priority-hotkeys.mjs';
+
+const statusEl = document.getElementById('status');
+const fileNameEl = document.getElementById('file-name');
+const filterPanel = document.getElementById('priority-filter');
+const filterBtn = document.getElementById('btn-priority-filter');
+const filterBadge = document.getElementById('filter-badge');
+const filterLabel = document.getElementById('filter-label');
+const filterHint = document.getElementById('filter-hint');
+
+let frontmatter = '';
+let selectedId = null;
+let isolateActive = false;
+let saveTimer = null;
+let renderPollTimer = null;
+let dirty = false;
+let observer;
+
+const mind = new MindElixir({
+  el: '#map',
+  direction: MindElixir.RIGHT,
+  draggable: true,
+  editable: true,
+  keypress: true,
+  contextMenu: true,
+  toolBar: true,
+  allowUndo: true,
+  newTopicName: 'New task',
+});
+
+function setStatus(text, kind = '') {
+  statusEl.textContent = text;
+  statusEl.className = `status${kind ? ` ${kind}` : ''}`;
+}
+
+function findById(node, id) {
+  if (!node || !id) return null;
+  if (node.id === id) return node;
+  for (const child of node.children || []) {
+    const found = findById(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function getSelectedNodeObj() {
+  const current = mind.currentNode?.nodeObj;
+  if (current) return current;
+  return findById(mind.getData().nodeData, selectedId);
+}
+
+function ensureExpanded(node) {
+  if (node.expanded === undefined) node.expanded = true;
+  for (const child of node.children || []) ensureExpanded(child);
+}
+
+function walkNodes(node, fn, depth = 0) {
+  fn(node, depth);
+  for (const child of node.children || []) walkNodes(child, fn, depth + 1);
+}
+
+function decorate() {
+  const container = mind.container;
+  observer?.disconnect();
+
+  const selected = getSelectedNodeObj();
+  const selPriority =
+    isolateActive && selected?.priority != null ? selected.priority : undefined;
+
+  for (const tpc of container.querySelectorAll('me-tpc')) {
+    const node = tpc.nodeObj;
+    if (!node) continue;
+    if (tpc.querySelector('input,textarea')) continue;
+
+    tpc.querySelector('.pri-badge')?.remove();
+    if (node.priority && node.id !== 'root') {
+      const badge = document.createElement('span');
+      badge.className = `pri-badge pri-${node.priority}`;
+      badge.textContent = String(node.priority);
+      tpc.prepend(badge);
+    }
+
+    const dim =
+      selPriority != null &&
+      node.id !== 'root' &&
+      node.priority !== selPriority;
+    tpc.classList.toggle('dimmed', dim);
+  }
+
+  updatePriorityFilterUI(selected);
+  updatePriorityToolbar(selected);
+  observer?.observe(container, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+}
+
+function updatePriorityFilterUI(selected) {
+  filterPanel.classList.remove('hidden');
+
+  if (!selected || selected.id === 'root' || selected.priority == null) {
+    isolateActive = false;
+    filterBtn.disabled = true;
+    filterBtn.classList.remove('active');
+    filterBadge.className = 'pri-badge';
+    filterBadge.textContent = '';
+    filterLabel.textContent = 'Only show nodes with same priority';
+    filterHint.classList.remove('hidden');
+    filterHint.textContent = 'Select a task with a priority to enable filtering.';
+    return;
+  }
+
+  filterBtn.disabled = false;
+  filterHint.classList.add('hidden');
+  filterBadge.className = `pri-badge pri-${selected.priority}`;
+  filterBadge.textContent = String(selected.priority);
+  filterLabel.textContent = `Only show nodes with same priority (${selected.priority})`;
+  filterBtn.classList.toggle('active', isolateActive);
+  filterBtn.title = isolateActive
+    ? 'Filtering by priority — click to show all'
+    : 'Only show nodes with same priority';
+}
+
+function updatePriorityToolbar(selected) {
+  const canSet =
+    selected && selected.id !== 'root';
+  for (const btn of document.querySelectorAll('.pri-tool')) {
+    btn.disabled = !canSet;
+  }
+}
+
+function setPriority(priorityValue) {
+  const node = getSelectedNodeObj();
+  if (!applyPriorityToNode(node, priorityValue)) return false;
+  decorate();
+  scheduleDraftSave();
+  mind.container.focus();
+  return true;
+}
+
+function focusMap() {
+  mind.container.focus();
+}
+
+function scheduleDraftSave() {
+  dirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDraft, 500);
+  setStatus('draft saving…');
+}
+
+async function saveDraft() {
+  try {
+    const data = mind.getData().nodeData;
+    const md = serializeMarkdown(frontmatter, data);
+    const res = await fetch('/api/draft', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: md,
+    });
+    if (!res.ok) throw new Error(`Draft save failed (${res.status})`);
+    setStatus('draft saved');
+  } catch (err) {
+    console.error(err);
+    setStatus('draft error', 'error');
+  }
+}
+
+async function saveMarkdown() {
+  try {
+    setStatus('saving…');
+    const data = mind.getData().nodeData;
+    const md = serializeMarkdown(frontmatter, data);
+    const res = await fetch('/api/markdown', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/plain' },
+      body: md,
+    });
+    if (!res.ok) throw new Error(`Save failed (${res.status})`);
+    dirty = false;
+    setStatus('saved', 'saved');
+    pollRenderStatus();
+  } catch (err) {
+    console.error(err);
+    setStatus('save error', 'error');
+  }
+}
+
+function pollRenderStatus() {
+  clearInterval(renderPollTimer);
+  renderPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/api/render-status');
+      const data = await res.json();
+      if (data.status === 'running') {
+        setStatus('rendering markmap…');
+      } else if (data.status === 'done') {
+        setStatus('saved · markmap updated', 'saved');
+        clearInterval(renderPollTimer);
+      } else if (data.status === 'error') {
+        setStatus(`saved · render failed`, 'error');
+        clearInterval(renderPollTimer);
+      } else {
+        clearInterval(renderPollTimer);
+      }
+    } catch {
+      clearInterval(renderPollTimer);
+    }
+  }, 800);
+}
+
+async function loadInitialData() {
+  const infoRes = await fetch('/api/info');
+  const info = await infoRes.json();
+  fileNameEl.textContent = info.markdownName;
+
+  let text;
+  if (info.draftExists) {
+    text = await (await fetch('/api/draft')).text();
+    if (text.trim()) {
+      setStatus('draft restored');
+    } else {
+      text = await (await fetch('/api/markdown')).text();
+    }
+  } else {
+    text = await (await fetch('/api/markdown')).text();
+  }
+
+  const parsed = parseMarkdown(text);
+  frontmatter = parsed.frontmatter;
+  ensureExpanded(parsed.root);
+  mind.init({ nodeData: parsed.root });
+  bindHotkeys();
+  decorate();
+  setStatus('ready');
+}
+
+function setupObserver() {
+  observer = new MutationObserver(() => decorate());
+}
+
+function setupBus() {
+  mind.bus.addListener('selectNodes', (nodes) => {
+    if (nodes?.length) {
+      selectedId = nodes[nodes.length - 1]?.id ?? null;
+      decorate();
+      focusMap();
+    }
+  });
+
+  mind.bus.addListener('selectNewNode', (nodeObj) => {
+    selectedId = nodeObj?.id ?? null;
+    decorate();
+    focusMap();
+  });
+
+  mind.bus.addListener('unselectNodes', () => {
+    if (!mind.currentNodes?.length) {
+      selectedId = null;
+      decorate();
+    }
+  });
+
+  mind.bus.addListener('operation', scheduleDraftSave);
+  mind.bus.addListener('expandNode', scheduleDraftSave);
+}
+
+let hotkeysBound = false;
+
+function bindHotkeys() {
+  if (hotkeysBound) return;
+  hotkeysBound = true;
+
+  mind.container.addEventListener(
+    'keydown',
+    (e) => {
+      if (handlePriorityHotkey(e)) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        saveMarkdown();
+        return;
+      }
+
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === 'p'
+      ) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        togglePriorityFilter();
+      }
+    },
+    true
+  );
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F1') {
+      e.preventDefault();
+      mind.toCenter();
+    }
+
+    if (e.code === 'Space' && !isEditing() && mind.container.contains(e.target)) {
+      const nodeEl = mind.currentNode;
+      if (nodeEl) {
+        e.preventDefault();
+        mind.expandNode(nodeEl);
+        decorate();
+      }
+    }
+  });
+}
+
+function handlePriorityHotkey(e) {
+  if (isEditing()) return false;
+
+  const priorityValue = parsePriorityHotkey(e);
+  if (priorityValue === undefined) return false;
+
+  const isPlain =
+    !e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey;
+  if (isPlain && !isMapPriorityContext()) return false;
+
+  if (!setPriority(priorityValue)) return false;
+
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  return true;
+}
+
+function isMapPriorityContext() {
+  if (!getSelectedNodeObj()) return false;
+  const active = document.activeElement;
+  if (active?.closest('header.toolbar button')) return false;
+  return true;
+}
+
+function isEditing() {
+  const active = document.activeElement;
+  return (
+    active &&
+    (active.tagName === 'INPUT' ||
+      active.tagName === 'TEXTAREA' ||
+      active.isContentEditable)
+  );
+}
+
+function togglePriorityFilter() {
+  const selected = getSelectedNodeObj();
+  if (!selected?.priority || selected.id === 'root') return;
+  isolateActive = !isolateActive;
+  decorate();
+}
+
+function expandAll() {
+  walkNodes(mind.nodeData, (node) => {
+    node.expanded = true;
+  });
+  mind.refresh();
+  decorate();
+  scheduleDraftSave();
+}
+
+function collapseAll() {
+  walkNodes(mind.nodeData, (node, depth) => {
+    if (depth > 0) node.expanded = false;
+  });
+  mind.refresh();
+  decorate();
+  scheduleDraftSave();
+}
+
+document.getElementById('btn-save').addEventListener('click', saveMarkdown);
+document.getElementById('btn-expand-all').addEventListener('click', expandAll);
+document.getElementById('btn-collapse-all').addEventListener('click', collapseAll);
+document.getElementById('btn-fit').addEventListener('click', () => mind.toCenter());
+filterBtn.addEventListener('click', togglePriorityFilter);
+
+for (const btn of document.querySelectorAll('.pri-tool[data-priority]')) {
+  btn.addEventListener('click', () => {
+    const raw = btn.dataset.priority;
+    setPriority(raw === '0' ? null : Number(raw));
+  });
+}
+
+let deferredInstall = null;
+const installBtn = document.getElementById('btn-install');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  installBtn.classList.remove('hidden');
+});
+installBtn.addEventListener('click', async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  installBtn.classList.add('hidden');
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch(console.error);
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (dirty) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+document.getElementById('hotkey-hint').textContent = PRIORITY_HOTKEY_HINT;
+
+setupObserver();
+setupBus();
+loadInitialData().catch((err) => {
+  console.error(err);
+  setStatus('load error', 'error');
+});

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1e88e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Sprint Map" />
+    <title>Mindmap Editor</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+    <link rel="stylesheet" href="/vendor/style.css" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <h1>Sprint Mindmap Editor</h1>
+        <span id="file-name" class="file-name"></span>
+      </div>
+      <div class="toolbar-actions">
+        <div class="priority-toolbar" aria-label="Set priority on selected task">
+          <span class="priority-toolbar-label">Priority</span>
+          <button type="button" class="pri-tool pri-badge pri-1" data-priority="1" data-testid="pri-btn-1" title="Priority 1 (key 1)">1</button>
+          <button type="button" class="pri-tool pri-badge pri-2" data-priority="2" data-testid="pri-btn-2" title="Priority 2 (key 2)">2</button>
+          <button type="button" class="pri-tool pri-badge pri-3" data-priority="3" data-testid="pri-btn-3" title="Priority 3 (key 3)">3</button>
+          <button type="button" class="pri-tool pri-badge pri-4" data-priority="4" data-testid="pri-btn-4" title="Priority 4 (key 4)">4</button>
+          <button type="button" class="pri-tool pri-badge pri-5" data-priority="5" data-testid="pri-btn-5" title="Priority 5 (key 5)">5</button>
+          <button type="button" class="pri-tool pri-clear" data-priority="0" data-testid="pri-btn-clear" title="Clear priority (key 0)">×</button>
+        </div>
+        <button type="button" id="btn-save" title="Save to markdown (Ctrl/Cmd+S)">
+          Save
+        </button>
+        <button type="button" id="btn-expand-all">Expand all</button>
+        <button type="button" id="btn-collapse-all">Collapse all</button>
+        <button type="button" id="btn-fit" title="Fit to view (F1)">Fit</button>
+        <button type="button" id="btn-install" class="install-btn hidden" title="Install as standalone app">
+          Install app
+        </button>
+      </div>
+      <div class="toolbar-right">
+        <span id="hotkey-hint" class="hotkey-hint"></span>
+        <div class="legend" aria-label="Priority legend">
+          <span class="legend-item"><span class="pri-badge pri-1">1</span> Critical</span>
+          <span class="legend-item"><span class="pri-badge pri-2">2</span> High</span>
+          <span class="legend-item"><span class="pri-badge pri-3">3</span> Medium</span>
+          <span class="legend-item"><span class="pri-badge pri-4">4</span> Low</span>
+          <span class="legend-item"><span class="pri-badge pri-5">5</span> Lowest</span>
+        </div>
+        <span id="status" class="status" data-testid="status" aria-live="polite">loading…</span>
+      </div>
+    </header>
+
+    <main id="map" data-testid="map" tabindex="-1"></main>
+
+    <aside id="priority-filter" class="priority-filter hidden" aria-label="Priority filter">
+      <button
+        type="button"
+        id="btn-priority-filter"
+        class="priority-filter-btn"
+        data-testid="priority-filter-btn"
+        disabled
+      >
+        <span id="filter-badge" class="pri-badge"></span>
+        <span id="filter-label">Priority</span>
+      </button>
+      <p id="filter-hint" class="priority-filter-hint">
+        Select a task with a priority to filter.
+      </p>
+    </aside>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "sprint-mindmap-editor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/unit/*.test.mjs && node test-roundtrip.mjs ../sprint-tasks.md",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

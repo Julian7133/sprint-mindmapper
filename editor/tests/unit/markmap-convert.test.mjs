@@ -1,0 +1,74 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import {
+  parseMarkdown,
+  serializeMarkdown,
+  extractPriority,
+  badgeHTML,
+  splitFrontmatter,
+} from '../../markmap-convert.mjs';
+
+const FIXTURE = `---
+markmap:
+  colorFreezeLevel: 2
+---
+
+# Root
+
+## Branch
+### <span style="background:#e53935;color:#ffffff;border-radius:50%;padding:1px 7px;font-weight:700;font-size:13px">1</span> Task A
+- nested detail
+  - deeper
+### Task B
+`;
+
+function norm(n) {
+  return {
+    t: n.topic,
+    p: n.priority ?? null,
+    c: (n.children || []).map(norm),
+  };
+}
+
+describe('markmap-convert', () => {
+  it('splits frontmatter verbatim', () => {
+    const { frontmatter, body } = splitFrontmatter(FIXTURE);
+    assert.match(frontmatter, /^---\nmarkmap:/);
+    assert.match(body, /\n# Root/);
+  });
+
+  it('extracts priority from span badge', () => {
+    const { priority, topic } = extractPriority(
+      '<span style="background:#e53935;color:#fff">2</span> Do thing'
+    );
+    assert.equal(priority, 2);
+    assert.equal(topic, 'Do thing');
+  });
+
+  it('parses headings and bullet levels', () => {
+    const { root } = parseMarkdown(FIXTURE);
+    assert.equal(root.topic, 'Root');
+    assert.equal(root.children.length, 1);
+    assert.equal(root.children[0].topic, 'Branch');
+    const tasks = root.children[0].children;
+    assert.equal(tasks[0].topic, 'Task A');
+    assert.equal(tasks[0].priority, 1);
+    assert.equal(tasks[0].children[0].topic, 'nested detail');
+    assert.equal(tasks[0].children[0].children[0].topic, 'deeper');
+  });
+
+  it('serializes priority badges with XMind colors', () => {
+    const html = badgeHTML(3);
+    assert.match(html, /#fdd835/);
+    assert.match(html, /#333333/);
+    assert.match(html, />3</);
+  });
+
+  it('round-trips structure and priorities', () => {
+    const a = parseMarkdown(FIXTURE);
+    const md = serializeMarkdown(a.frontmatter, a.root);
+    const b = parseMarkdown(md);
+    assert.deepEqual(norm(a.root), norm(b.root));
+    assert.equal(a.frontmatter.trim(), b.frontmatter.trim());
+  });
+});
