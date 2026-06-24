@@ -1,0 +1,14 @@
+---
+description: Keep the sprint-mindmap editor UI minimal — toggled panels only, reuse natives
+globs: editor/**/*.{js,mjs,css,html}
+alwaysApply: false
+---
+
+# Minimal editor UI
+
+- Prefer **toggled `<aside>` panels** over new always-visible chrome. Follow `#marker-picker`, `#priority-filter`, `#file-panel`, and `#export-panel` patterns.
+- The **filename button** opens the file panel; do not add a permanent sidebar or file tree.
+- **Reuse mind-elixir natives** (`exportPng`, `exportSvg`, `hyperLink`, `contextMenu.extend`) and **npx tools** (`markmap-cli` via `render-markmap.sh`) instead of custom renderers or parsers.
+- New toolbar buttons need justification; prefer actions inside an existing toggled panel.
+- Match existing spacing, border-radius, and shadow tokens in `editor/style.css`.
+- Server-side format conversion belongs in `editor/import-formats.mjs`; client stays thin (fetch + open file).
