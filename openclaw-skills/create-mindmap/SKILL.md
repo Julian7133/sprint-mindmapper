@@ -55,7 +55,7 @@ command -v npx >/dev/null && echo "npx OK"
 2. **Gather inputs** — title, **absolute** output directory, source text or file path
 3. **Pick pattern** — ebook summary (plain), sprint tasks (priorities), or simple outline — see `{baseDir}/reference/STRUCTURE-PATTERNS.md`
 4. **Structure** — `#` root → `##` branches → `###` nodes → `-` bullets
-5. **Write** — prepend frontmatter from `{baseDir}/templates/blank.md`; save `<outDir>/<slug>.md`
+5. **Write** — prepend frontmatter; set `initialExpandLevel` from node count (see below); save `<outDir>/<slug>.md`
 6. **Validate** — run round-trip check (REQUIRED before render)
 7. **Render** — call `render-markmap.sh` with absolute paths
 8. **Self-check** — optional vision on PNG if present; otherwise confirm `.html` exists
@@ -79,6 +79,19 @@ Common validation failures:
 - Broken `<span data-m=...>` marker HTML
 
 Only proceed to render after validation passes.
+
+## initialExpandLevel (required for markmap HTML)
+
+After structuring, count **nodes** (each `#`/`##`/`###` heading and each `-` bullet). Set `initialExpandLevel` in frontmatter before saving:
+
+| Node count | `initialExpandLevel` | Typical use |
+|------------|----------------------|-------------|
+| ≤ 25 | 4 | Sprint tasks, short outlines |
+| 26–80 | 3 | Medium summaries |
+| 81–200 | 2 | Book chapters, dense summaries |
+| > 200 | 1 | Very large maps (root + top branches only) |
+
+Copy other frontmatter defaults from `{baseDir}/templates/blank.md`. This controls how many levels the **markmap HTML** opens expanded; large maps stay readable.
 
 ## Self-check
 

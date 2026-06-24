@@ -110,3 +110,20 @@ Use lowercase, hyphens, no spaces. Write to the user-specified **absolute** outp
 | Large book | `#` + `##` per chapter + `###` themes + `-` details |
 
 Avoid more than 4 visible levels unless the source truly requires it — markmap readability drops with very deep trees.
+
+## initialExpandLevel
+
+Count nodes after structuring (headings + bullets). Set in YAML frontmatter:
+
+| Nodes | Level |
+|-------|-------|
+| ≤ 25 | 4 |
+| 26–80 | 3 |
+| 81–200 | 2 |
+| > 200 | 1 |
+
+## Multi-file maps (optional, manual only)
+
+Do **not** auto-split into index + chapter files. Single `.md` per mindmap is the default.
+
+Hyperlinks (`[label](url)`) round-trip in markdown but do not provide XMind-style drill-down between maps. Mention splitting only if the user explicitly asks.

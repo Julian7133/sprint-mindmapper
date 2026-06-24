@@ -40,7 +40,13 @@ export default [
     },
   },
   {
-    files: ['app.js', 'service-worker.js'],
+    files: [
+      'app.js',
+      'service-worker.js',
+      'workspace.mjs',
+      'workspace-storage.mjs',
+      'folder-workspace.mjs',
+    ],
     languageOptions: {
       globals: globals.browser,
     },
