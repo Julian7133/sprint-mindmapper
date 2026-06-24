@@ -35,7 +35,7 @@ esac
 # caught mid-animation, squeezed into the top-left corner, or blank.
 # NB: classic --headless is required here — the new headless mode (--headless=new)
 # captures a blank frame under --virtual-time-budget for this CDN-driven page.
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 if [ -x "$CHROME" ]; then
   "$CHROME" --headless --disable-gpu \
     --screenshot="$PNG_OUT" \
