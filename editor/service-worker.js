@@ -1,4 +1,4 @@
-const CACHE = 'sprint-mindmap-editor-v3';
+const CACHE = 'sprint-mindmap-editor-v4';
 
 const SHELL = [
   '/',
@@ -8,7 +8,6 @@ const SHELL = [
   '/markmap-convert.mjs',
   '/markers.mjs',
   '/marker-picker.mjs',
-  '/priority-hotkeys.mjs',
   '/priority-hotkeys.mjs',
   '/manifest.webmanifest',
   '/vendor/MindElixir.js',
