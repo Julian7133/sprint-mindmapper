@@ -81,14 +81,7 @@ export function taskMarkerHTML(level) {
   const t = TASK_PROGRESS[level];
   if (!t) return '';
   const inner = t.done ? '✓' : t.play ? '▶' : '';
-  const pie = `<span data-m="task" data-v="${level}" style="${taskInlineStyle(level)}">${inner}</span>`;
-  // The pie alone is ambiguous at markmap's small scale (75% vs 88% vs done look
-  // alike), so append a readable label. The label span carries no data-m/data-v,
-  // so parseLineContent discards it on the way back in — round-trip stays intact.
-  const label =
-    `<span data-task-label="${level}" style="font-size:11px;font-weight:600;` +
-    `color:#2e7d32;vertical-align:middle;margin-right:4px">${t.label}</span>`;
-  return pie + label;
+  return `<span data-m="task" data-v="${level}" style="${taskInlineStyle(level)}">${inner}</span>`;
 }
 
 export function iconMarkerHTML(kind, level) {
@@ -196,10 +189,7 @@ export function createMarkerElements(node) {
   wrap.className = 'node-markers';
 
   if (node.priority) wrap.appendChild(buildPriorityEl(node.priority));
-  if (node.taskProgress != null) {
-    wrap.appendChild(buildTaskEl(node.taskProgress));
-    wrap.appendChild(buildTaskLabelEl(node.taskProgress));
-  }
+  if (node.taskProgress != null) wrap.appendChild(buildTaskEl(node.taskProgress));
   if (node.flag) wrap.appendChild(buildIconEl('flag', node.flag));
   if (node.star) wrap.appendChild(buildIconEl('star', node.star));
   if (node.people) wrap.appendChild(buildIconEl('people', node.people));
@@ -222,14 +212,6 @@ function buildTaskEl(level) {
   el.title = t?.label ?? '';
   if (t?.done) el.textContent = '✓';
   else if (t?.play) el.textContent = '▶';
-  return el;
-}
-
-function buildTaskLabelEl(level) {
-  const t = TASK_PROGRESS[level];
-  const el = document.createElement('span');
-  el.className = 'marker-task-label';
-  el.textContent = t?.label ?? '';
   return el;
 }
 
