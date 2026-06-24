@@ -12,6 +12,7 @@ const statusEl = document.getElementById('status');
 const fileNameEl = document.getElementById('file-name');
 const filePanel = document.getElementById('file-panel');
 const fileListEl = document.getElementById('file-list');
+const exportPanel = document.getElementById('export-panel');
 const importInput = document.getElementById('import-input');
 const filterPanel = document.getElementById('priority-filter');
 const filterBtn = document.getElementById('btn-priority-filter');
@@ -80,6 +81,14 @@ function apiUrl(path) {
   return `${path}${fileQuery()}`;
 }
 
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function setStatus(text, kind = '') {
   statusEl.textContent = text;
@@ -388,13 +397,31 @@ async function importFile(file) {
 }
 
 function toggleFilePanel() {
+  exportPanel.classList.add('hidden');
   filePanel.classList.toggle('hidden');
   if (!filePanel.classList.contains('hidden')) refreshFileList();
 }
 
+function toggleExportPanel() {
+  filePanel.classList.add('hidden');
+  exportPanel.classList.toggle('hidden');
+}
 
+async function exportPng() {
+  const blob = await mind.exportPng();
+  const stem = pathBasename(activeFile || 'mindmap').replace(/\.md$/i, '');
+  downloadBlob(blob, `${stem}.png`);
+}
 
+async function exportSvg() {
+  const blob = mind.exportSvg();
+  const stem = pathBasename(activeFile || 'mindmap').replace(/\.md$/i, '');
+  downloadBlob(blob, `${stem}.svg`);
+}
 
+function openMarkmapHtml() {
+  window.open(apiUrl('/api/markmap'), '_blank', 'noopener');
+}
 
 async function loadInitialData() {
   const infoRes = await fetch('/api/info');
@@ -575,6 +602,11 @@ importInput.addEventListener('change', () => {
   importInput.value = '';
   if (file) importFile(file).catch(console.error);
 });
+document.getElementById('btn-export').addEventListener('click', toggleExportPanel);
+document.getElementById('btn-export-close').addEventListener('click', () => exportPanel.classList.add('hidden'));
+document.getElementById('btn-export-png').addEventListener('click', () => exportPng().catch(console.error));
+document.getElementById('btn-export-svg').addEventListener('click', () => exportSvg());
+document.getElementById('btn-open-markmap').addEventListener('click', openMarkmapHtml);
 filterBtn.addEventListener('click', togglePriorityFilter);
 btnMarkers.addEventListener('click', () => markerPicker.toggle());
 
