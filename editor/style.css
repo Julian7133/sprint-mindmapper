@@ -159,6 +159,72 @@ body {
   background: #f9fafb;
 }
 
+.file-inline-form {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.file-inline-form.hidden {
+  display: none;
+}
+
+.file-inline-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.file-inline-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.file-inline-form input[type='text'] {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  margin-bottom: 8px;
+}
+
+.file-list input[type='text'].file-rename-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.inline-form-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.inline-form-actions button {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.inline-form-actions button:hover {
+  background: #f3f4f6;
+}
+
 .toolbar-actions {
   display: flex;
   gap: 8px;
