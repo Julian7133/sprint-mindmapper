@@ -103,6 +103,12 @@ function decorate() {
     tpc.classList.toggle('dimmed', dim);
   }
 
+  // Markers are injected after Mind Elixir has laid out the tree, which widens
+  // each me-tpc. Re-anchor the connection lines to the updated node edges so they
+  // no longer cut across the node text. Safe here: the observer is disconnected,
+  // so linkDiv's own DOM writes won't retrigger decorate.
+  mind.linkDiv();
+
   updatePriorityFilterUI(selected);
   markerPicker.refresh();
   observer?.observe(container, {
