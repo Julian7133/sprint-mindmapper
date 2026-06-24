@@ -3,8 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixtureMd = path.join(__dirname, 'tests/fixtures/sample-tasks.md');
-const testDraft = path.join(__dirname, 'tests/fixtures/.test-draft');
+const fixtureDir = path.join(__dirname, 'tests/fixtures');
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -18,7 +17,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: `node server.mjs "${fixtureMd}"`,
+    command: `node server.mjs "${fixtureDir}"`,
     cwd: __dirname,
     url: 'http://127.0.0.1:8732',
     reuseExistingServer: false,
@@ -26,7 +25,7 @@ export default defineConfig({
       ...process.env,
       PORT: '8732',
       SKIP_RENDER: '1',
-      CACHE_PATH: testDraft,
+      DEFAULT_FILE: 'sample-tasks.md',
     },
   },
 });
