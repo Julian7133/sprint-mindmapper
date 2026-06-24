@@ -43,6 +43,107 @@ body {
 .file-name {
   color: #6b7280;
   font-size: 13px;
+  border: none;
+  background: transparent;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.file-name:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.file-panel {
+  position: fixed;
+  left: 24px;
+  top: 72px;
+  z-index: 30;
+  width: min(320px, calc(100vw - 48px));
+  max-height: min(70vh, 480px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+}
+
+.file-panel.hidden {
+  display: none;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.panel-close {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 0 4px;
+}
+
+.file-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.file-list li {
+  margin-bottom: 4px;
+}
+
+.file-list button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.file-list button:hover {
+  background: #f9fafb;
+}
+
+.file-list button.active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-actions button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.panel-actions button:hover {
+  background: #f9fafb;
 }
 
 .toolbar-actions {

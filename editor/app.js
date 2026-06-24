@@ -10,6 +10,8 @@ import {
 
 const statusEl = document.getElementById('status');
 const fileNameEl = document.getElementById('file-name');
+const filePanel = document.getElementById('file-panel');
+const fileListEl = document.getElementById('file-list');
 const filterPanel = document.getElementById('priority-filter');
 const filterBtn = document.getElementById('btn-priority-filter');
 const filterBadge = document.getElementById('filter-badge');
@@ -20,6 +22,8 @@ const btnMarkers = document.getElementById('btn-markers');
 
 let frontmatter = '';
 let selectedId = null;
+let activeFile = null;
+let workspaceFiles = [];
 let isolateActive = false;
 let saveTimer = null;
 let renderPollTimer = null;
@@ -46,6 +50,15 @@ const mind = new MindElixir({
   allowUndo: true,
   newTopicName: 'New task',
 });
+
+function fileQuery() {
+  return activeFile ? `?file=${encodeURIComponent(activeFile)}` : '';
+}
+
+function apiUrl(path) {
+  return `${path}${fileQuery()}`;
+}
+
 
 function setStatus(text, kind = '') {
   statusEl.textContent = text;
@@ -168,7 +181,7 @@ async function saveDraft() {
   try {
     const data = mind.getData().nodeData;
     const md = serializeMarkdown(frontmatter, data);
-    const res = await fetch('/api/draft', {
+    const res = await fetch(apiUrl('/api/draft'), {
       method: 'PUT',
       headers: { 'Content-Type': 'text/plain' },
       body: md,
@@ -186,7 +199,7 @@ async function saveMarkdown() {
     setStatus('saving…');
     const data = mind.getData().nodeData;
     const md = serializeMarkdown(frontmatter, data);
-    const res = await fetch('/api/markdown', {
+    const res = await fetch(apiUrl('/api/markdown'), {
       method: 'PUT',
       headers: { 'Content-Type': 'text/plain' },
       body: md,
@@ -224,22 +237,134 @@ function pollRenderStatus() {
   }, 800);
 }
 
-async function loadInitialData() {
-  const infoRes = await fetch('/api/info');
+async function loadFileContent() {
+  const infoRes = await fetch(apiUrl('/api/info'));
   const info = await infoRes.json();
-  fileNameEl.textContent = info.markdownName;
 
   let text;
   if (info.draftExists) {
-    text = await (await fetch('/api/draft')).text();
+    text = await (await fetch(apiUrl('/api/draft'))).text();
     if (text.trim()) {
       setStatus('draft restored');
     } else {
-      text = await (await fetch('/api/markdown')).text();
+      text = await (await fetch(apiUrl('/api/markdown'))).text();
     }
   } else {
-    text = await (await fetch('/api/markdown')).text();
+    text = await (await fetch(apiUrl('/api/markdown'))).text();
   }
+
+  return { info, text };
+}
+
+async function openFile(rel, { force = false } = {}) {
+  if (!force && dirty && rel !== activeFile) {
+    const ok = confirm('You have unsaved changes. Switch file anyway?');
+    if (!ok) return false;
+  }
+
+  activeFile = rel;
+  fileNameEl.textContent = pathBasename(rel);
+  renderFileList();
+
+  const { text } = await loadFileContent();
+  frontmatter = '';
+  selectedId = null;
+  isolateActive = false;
+
+  const parsed = parseMarkdown(text);
+  frontmatter = parsed.frontmatter;
+  ensureExpanded(parsed.root);
+  mind.init({ nodeData: parsed.root });
+  dirty = false;
+  decorate();
+  setStatus('ready');
+  return true;
+}
+
+function pathBasename(rel) {
+  const parts = rel.split(/[/\\]/);
+  return parts[parts.length - 1] || rel;
+}
+
+async function refreshFileList() {
+  const res = await fetch('/api/files');
+  const data = await res.json();
+  workspaceFiles = data.files || [];
+  if (!activeFile) activeFile = data.defaultFile || data.activeFile;
+  renderFileList();
+}
+
+function renderFileList() {
+  fileListEl.innerHTML = '';
+  for (const rel of workspaceFiles) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = rel;
+    btn.classList.toggle('active', rel === activeFile);
+    btn.addEventListener('click', () => {
+      if (rel === activeFile) return;
+      openFile(rel).catch(console.error);
+    });
+    btn.addEventListener('dblclick', () => startRenameFile(rel));
+    li.appendChild(btn);
+    fileListEl.appendChild(li);
+  }
+}
+
+async function startRenameFile(rel) {
+  const next = prompt('Rename file', rel);
+  if (!next || next === rel) return;
+  const res = await fetch('/api/files/rename', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: rel, to: next }),
+  });
+  if (!res.ok) {
+    alert('Rename failed');
+    return;
+  }
+  const data = await res.json();
+  await refreshFileList();
+  if (activeFile === rel) {
+    await openFile(data.file, { force: true });
+  }
+}
+
+async function createNewFile() {
+  const name = prompt('New file name', 'untitled.md');
+  if (!name) return;
+  const res = await fetch('/api/files', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    alert('Could not create file');
+    return;
+  }
+  const data = await res.json();
+  await refreshFileList();
+  await openFile(data.file, { force: true });
+}
+
+
+function toggleFilePanel() {
+  filePanel.classList.toggle('hidden');
+  if (!filePanel.classList.contains('hidden')) refreshFileList();
+}
+
+
+
+
+
+async function loadInitialData() {
+  const infoRes = await fetch('/api/info');
+  const info = await infoRes.json();
+  activeFile = info.activeFile || info.defaultFile;
+  fileNameEl.textContent = info.markdownName;
+
+  const { text } = await loadFileContent();
 
   const parsed = parseMarkdown(text);
   frontmatter = parsed.frontmatter;
@@ -248,6 +373,7 @@ async function loadInitialData() {
   bindHotkeys();
   decorate();
   markerPicker.show();
+  await refreshFileList();
   setStatus('ready');
 }
 
@@ -402,6 +528,9 @@ document.getElementById('btn-save').addEventListener('click', saveMarkdown);
 document.getElementById('btn-expand-all').addEventListener('click', expandAll);
 document.getElementById('btn-collapse-all').addEventListener('click', collapseAll);
 document.getElementById('btn-fit').addEventListener('click', () => mind.toCenter());
+fileNameEl.addEventListener('click', toggleFilePanel);
+document.getElementById('btn-file-close').addEventListener('click', () => filePanel.classList.add('hidden'));
+document.getElementById('btn-new-file').addEventListener('click', () => createNewFile().catch(console.error));
 filterBtn.addEventListener('click', togglePriorityFilter);
 btnMarkers.addEventListener('click', () => markerPicker.toggle());
 
