@@ -1,6 +1,6 @@
 /** Priority input — plain digits (Mac-friendly) + Option+Shift+digit via event.code. */
 
-export const PRIORITY_HOTKEY_HINT = '1…5 set priority · 0 clear · or click badges';
+export const PRIORITY_HOTKEY_HINT = '1…5 priority · 0 clear · Markers panel for task/flag/star';
 
 const CODE_TO_PRIORITY = {
   Digit1: 1,

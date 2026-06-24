@@ -1,5 +1,7 @@
 import MindElixir from './vendor/MindElixir.js';
 import { parseMarkdown, serializeMarkdown } from './markmap-convert.mjs';
+import { createMarkerElements } from './markers.mjs';
+import { initMarkerPicker } from './marker-picker.mjs';
 import {
   parsePriorityHotkey,
   applyPriorityToNode,
@@ -13,6 +15,8 @@ const filterBtn = document.getElementById('btn-priority-filter');
 const filterBadge = document.getElementById('filter-badge');
 const filterLabel = document.getElementById('filter-label');
 const filterHint = document.getElementById('filter-hint');
+const markerPickerPanel = document.getElementById('marker-picker');
+const btnMarkers = document.getElementById('btn-markers');
 
 let frontmatter = '';
 let selectedId = null;
@@ -21,6 +25,15 @@ let saveTimer = null;
 let renderPollTimer = null;
 let dirty = false;
 let observer;
+
+const markerPicker = initMarkerPicker({
+  panelEl: markerPickerPanel,
+  getSelectedNode: getSelectedNodeObj,
+  onChange: () => {
+    decorate();
+    scheduleDraftSave();
+  },
+});
 
 const mind = new MindElixir({
   el: '#map',
@@ -78,12 +91,9 @@ function decorate() {
     if (!node) continue;
     if (tpc.querySelector('input,textarea')) continue;
 
-    tpc.querySelector('.pri-badge')?.remove();
-    if (node.priority && node.id !== 'root') {
-      const badge = document.createElement('span');
-      badge.className = `pri-badge pri-${node.priority}`;
-      badge.textContent = String(node.priority);
-      tpc.prepend(badge);
+    tpc.querySelector('.node-markers')?.remove();
+    if (node.id !== 'root') {
+      tpc.prepend(createMarkerElements(node));
     }
 
     const dim =
@@ -94,7 +104,7 @@ function decorate() {
   }
 
   updatePriorityFilterUI(selected);
-  updatePriorityToolbar(selected);
+  markerPicker.refresh();
   observer?.observe(container, {
     childList: true,
     subtree: true,
@@ -109,7 +119,7 @@ function updatePriorityFilterUI(selected) {
     isolateActive = false;
     filterBtn.disabled = true;
     filterBtn.classList.remove('active');
-    filterBadge.className = 'pri-badge';
+    filterBadge.className = 'marker-pri pri-1';
     filterBadge.textContent = '';
     filterLabel.textContent = 'Only show nodes with same priority';
     filterHint.classList.remove('hidden');
@@ -119,21 +129,13 @@ function updatePriorityFilterUI(selected) {
 
   filterBtn.disabled = false;
   filterHint.classList.add('hidden');
-  filterBadge.className = `pri-badge pri-${selected.priority}`;
+  filterBadge.className = `marker-pri pri-${selected.priority}`;
   filterBadge.textContent = String(selected.priority);
   filterLabel.textContent = `Only show nodes with same priority (${selected.priority})`;
   filterBtn.classList.toggle('active', isolateActive);
   filterBtn.title = isolateActive
     ? 'Filtering by priority — click to show all'
     : 'Only show nodes with same priority';
-}
-
-function updatePriorityToolbar(selected) {
-  const canSet =
-    selected && selected.id !== 'root';
-  for (const btn of document.querySelectorAll('.pri-tool')) {
-    btn.disabled = !canSet;
-  }
 }
 
 function setPriority(priorityValue) {
@@ -205,7 +207,7 @@ function pollRenderStatus() {
         setStatus('saved · markmap updated', 'saved');
         clearInterval(renderPollTimer);
       } else if (data.status === 'error') {
-        setStatus(`saved · render failed`, 'error');
+        setStatus('saved · render failed', 'error');
         clearInterval(renderPollTimer);
       } else {
         clearInterval(renderPollTimer);
@@ -239,6 +241,7 @@ async function loadInitialData() {
   mind.init({ nodeData: parsed.root });
   bindHotkeys();
   decorate();
+  markerPicker.show();
   setStatus('ready');
 }
 
@@ -299,6 +302,16 @@ function bindHotkeys() {
         e.stopImmediatePropagation();
         togglePriorityFilter();
       }
+
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === 'm'
+      ) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        markerPicker.toggle();
+      }
     },
     true
   );
@@ -340,7 +353,7 @@ function handlePriorityHotkey(e) {
 function isMapPriorityContext() {
   if (!getSelectedNodeObj()) return false;
   const active = document.activeElement;
-  if (active?.closest('header.toolbar button')) return false;
+  if (active?.closest('header.toolbar button, .marker-picker')) return false;
   return true;
 }
 
@@ -384,13 +397,7 @@ document.getElementById('btn-expand-all').addEventListener('click', expandAll);
 document.getElementById('btn-collapse-all').addEventListener('click', collapseAll);
 document.getElementById('btn-fit').addEventListener('click', () => mind.toCenter());
 filterBtn.addEventListener('click', togglePriorityFilter);
-
-for (const btn of document.querySelectorAll('.pri-tool[data-priority]')) {
-  btn.addEventListener('click', () => {
-    const raw = btn.dataset.priority;
-    setPriority(raw === '0' ? null : Number(raw));
-  });
-}
+btnMarkers.addEventListener('click', () => markerPicker.toggle());
 
 let deferredInstall = null;
 const installBtn = document.getElementById('btn-install');
@@ -418,7 +425,8 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-document.getElementById('hotkey-hint').textContent = PRIORITY_HOTKEY_HINT;
+document.getElementById('hotkey-hint').textContent =
+  `${PRIORITY_HOTKEY_HINT} · Cmd+Shift+M markers`;
 
 setupObserver();
 setupBus();

@@ -3,24 +3,19 @@
  * Shared by browser (app.js) and Node (test-roundtrip.mjs, server).
  */
 
-export const PRIORITY = {
-  1: { bg: '#e53935', fg: '#ffffff' },
-  2: { bg: '#fb8c00', fg: '#333333' },
-  3: { bg: '#fdd835', fg: '#333333' },
-  4: { bg: '#43a047', fg: '#333333' },
-  5: { bg: '#1e88e5', fg: '#ffffff' },
-};
+import {
+  parseLineContent,
+  markerPrefixHTML,
+  badgeHTML,
+  priorityMarkerHTML,
+} from './markers.mjs';
 
-const MAX_PRIORITY = 5;
-
-export function badgeHTML(p) {
-  const c = PRIORITY[p];
-  if (!c) return '';
-  return (
-    `<span style="background:${c.bg};color:${c.fg};border-radius:50%;` +
-    `padding:1px 7px;font-weight:700;font-size:13px">${p}</span>`
-  );
-}
+export {
+  badgeHTML,
+  priorityMarkerHTML,
+  markerPrefixHTML,
+  parseLineContent,
+} from './markers.mjs';
 
 export function splitFrontmatter(text) {
   if (!text.startsWith('---\n')) {
@@ -35,19 +30,10 @@ export function splitFrontmatter(text) {
   return { frontmatter, body };
 }
 
+/** @deprecated */
 export function extractPriority(text) {
-  const spanMatch = text.match(/^\s*<span\b[^>]*>(\d+)<\/span>\s*/i);
-  if (spanMatch) {
-    const priority = clampPriority(parseInt(spanMatch[1], 10));
-    return { priority, topic: text.slice(spanMatch[0].length).trim() };
-  }
-  return { priority: undefined, topic: text.trim() };
-}
-
-function clampPriority(n) {
-  if (!Number.isFinite(n)) return undefined;
-  if (n < 1 || n > MAX_PRIORITY) return undefined;
-  return n;
+  const parsed = parseLineContent(text);
+  return { priority: parsed.priority, topic: parsed.topic };
 }
 
 function countIndent(raw) {
@@ -60,6 +46,23 @@ function countIndent(raw) {
   return n;
 }
 
+function lineToNode(level, rawText, idCounter, nextId) {
+  const parsed = parseLineContent(rawText);
+  const node = {
+    id: level === 1 ? 'root' : `me${nextId()}`,
+    topic: parsed.topic,
+    children: [],
+  };
+  if (level > 1) {
+    if (parsed.priority) node.priority = parsed.priority;
+    if (parsed.taskProgress != null) node.taskProgress = parsed.taskProgress;
+    if (parsed.flag) node.flag = parsed.flag;
+    if (parsed.star) node.star = parsed.star;
+    if (parsed.people) node.people = parsed.people;
+  }
+  return node;
+}
+
 export function parseMarkdown(text) {
   const { frontmatter, body } = splitFrontmatter(text);
   const lines = body.split('\n');
@@ -67,6 +70,7 @@ export function parseMarkdown(text) {
   const stack = [];
   let headingLevel = 0;
   let idCounter = 0;
+  const nextId = () => ++idCounter;
 
   for (const raw of lines) {
     if (!raw.trim()) continue;
@@ -75,8 +79,7 @@ export function parseMarkdown(text) {
     if (headingMatch) {
       const level = headingMatch[1].length;
       headingLevel = level;
-      const { priority, topic } = extractPriority(headingMatch[2]);
-      const node = makeNode(level, topic, priority, idCounter, () => ++idCounter);
+      const node = lineToNode(level, headingMatch[2], idCounter, nextId);
       attachNode(root, stack, level, node, (r) => {
         root = r;
       });
@@ -87,8 +90,7 @@ export function parseMarkdown(text) {
     if (bulletMatch) {
       const indent = countIndent(bulletMatch[1]);
       const level = headingLevel + 1 + Math.floor(indent / 2);
-      const { priority, topic } = extractPriority(bulletMatch[2]);
-      const node = makeNode(level, topic, priority, idCounter, () => ++idCounter);
+      const node = lineToNode(level, bulletMatch[2], idCounter, nextId);
       attachNode(root, stack, level, node, (r) => {
         root = r;
       });
@@ -100,15 +102,6 @@ export function parseMarkdown(text) {
   }
 
   return { frontmatter, root };
-}
-
-function makeNode(level, topic, priority, idCounter, nextId) {
-  return {
-    id: level === 1 ? 'root' : `me${nextId()}`,
-    topic,
-    priority: level === 1 ? undefined : priority,
-    children: [],
-  };
 }
 
 function attachNode(root, stack, level, node, setRoot) {
@@ -148,10 +141,8 @@ function walkNode(node, depth, out) {
           ? '### '
           : `${' '.repeat((depth - 3) * 2)}- `;
 
-  const text =
-    node.priority && depth > 0
-      ? `${badgeHTML(node.priority)} ${node.topic}`
-      : node.topic;
+  const markers = depth > 0 ? markerPrefixHTML(node) : '';
+  const text = markers ? `${markers}${node.topic}` : node.topic;
 
   if (depth === 1) out.push('');
   out.push(prefix + text);

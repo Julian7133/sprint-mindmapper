@@ -21,15 +21,9 @@
         <span id="file-name" class="file-name"></span>
       </div>
       <div class="toolbar-actions">
-        <div class="priority-toolbar" aria-label="Set priority on selected task">
-          <span class="priority-toolbar-label">Priority</span>
-          <button type="button" class="pri-tool pri-badge pri-1" data-priority="1" data-testid="pri-btn-1" title="Priority 1 (key 1)">1</button>
-          <button type="button" class="pri-tool pri-badge pri-2" data-priority="2" data-testid="pri-btn-2" title="Priority 2 (key 2)">2</button>
-          <button type="button" class="pri-tool pri-badge pri-3" data-priority="3" data-testid="pri-btn-3" title="Priority 3 (key 3)">3</button>
-          <button type="button" class="pri-tool pri-badge pri-4" data-priority="4" data-testid="pri-btn-4" title="Priority 4 (key 4)">4</button>
-          <button type="button" class="pri-tool pri-badge pri-5" data-priority="5" data-testid="pri-btn-5" title="Priority 5 (key 5)">5</button>
-          <button type="button" class="pri-tool pri-clear" data-priority="0" data-testid="pri-btn-clear" title="Clear priority (key 0)">×</button>
-        </div>
+        <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel (Ctrl/Cmd+Shift+M)">
+          Markers
+        </button>
         <button type="button" id="btn-save" title="Save to markdown (Ctrl/Cmd+S)">
           Save
         </button>
@@ -43,17 +37,19 @@
       <div class="toolbar-right">
         <span id="hotkey-hint" class="hotkey-hint"></span>
         <div class="legend" aria-label="Priority legend">
-          <span class="legend-item"><span class="pri-badge pri-1">1</span> Critical</span>
-          <span class="legend-item"><span class="pri-badge pri-2">2</span> High</span>
-          <span class="legend-item"><span class="pri-badge pri-3">3</span> Medium</span>
-          <span class="legend-item"><span class="pri-badge pri-4">4</span> Low</span>
-          <span class="legend-item"><span class="pri-badge pri-5">5</span> Lowest</span>
+          <span class="legend-item"><span class="marker-pri pri-1">1</span> Critical</span>
+          <span class="legend-item"><span class="marker-pri pri-2">2</span> High</span>
+          <span class="legend-item"><span class="marker-pri pri-3">3</span> Medium</span>
+          <span class="legend-item"><span class="marker-pri pri-4">4</span> Low</span>
+          <span class="legend-item"><span class="marker-pri pri-5">5</span> Lowest</span>
         </div>
         <span id="status" class="status" data-testid="status" aria-live="polite">loading…</span>
       </div>
     </header>
 
     <main id="map" data-testid="map" tabindex="-1"></main>
+
+    <aside id="marker-picker" class="marker-picker hidden" data-testid="marker-picker" aria-label="XMind markers"></aside>
 
     <aside id="priority-filter" class="priority-filter hidden" aria-label="Priority filter">
       <button

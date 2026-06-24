@@ -33,12 +33,15 @@ The editor is a **Progressive Web App**. The local server must be running (`node
 ## Workflow
 
 1. Edit tasks on the canvas (Tab = child, Enter = sibling, drag to reorder).
-2. Select a task, then set priority:
-   - Press **1…5** (clear: **0**), or
-   - Click the colored **Priority** buttons in the toolbar
-3. **Same priority only** (bottom-right): dims other priorities; enabled only when a prioritized task is selected.
-4. **Save** or **Ctrl/Cmd+S** → writes `sprint-tasks.md`, updates draft cache, runs `render-markmap.sh`.
-5. Open `sprint-tasks.html` for the read-only markmap view.
+2. Select a task, then set markers in the **Markers** panel (bottom-left):
+   - **Priority** 1–7 (quick: keys **1…5**, clear **0**)
+   - **Task** progress (start → 12% → … → done)
+   - **Flag**, **Star**, **People** (colored 1–7)
+   - Click again to clear; **×** clears a row
+3. Toggle panel: **Markers** button or **Ctrl/Cmd+Shift+M**
+4. **Same priority only** (bottom-right): dims other priorities when a prioritized task is selected.
+5. **Save** or **Ctrl/Cmd+S** → writes `sprint-tasks.md`, updates draft cache, runs `render-markmap.sh`.
+6. Open `sprint-tasks.html` for the read-only markmap view.
 
 Draft cache: `sprint-tasks.md.editor-draft` (same folder as the markdown file).
 
@@ -48,9 +51,10 @@ Draft cache: `sprint-tasks.md.editor-draft` (same folder as the markdown file).
 |-----|--------|
 | Tab | Add child |
 | Enter | Add sibling |
-| 1…5 | Set priority (task selected, not editing) |
+| 1…5 | Set priority (task selected) |
 | 0 | Clear priority |
-| Toolbar Priority 1…5 / × | Set / clear priority |
+| Ctrl/Cmd+Shift+M | Toggle Markers panel |
+| Toolbar Markers panel | Priority, task, flag, star, people |
 | Ctrl/Cmd+Shift+P | Toggle same-priority filter |
 | Ctrl/Cmd+S | Save to markdown + render markmap |
 | F1 / Fit | Center map |

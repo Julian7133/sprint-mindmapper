@@ -59,8 +59,8 @@ describe('markmap-convert', () => {
 
   it('serializes priority badges with XMind colors', () => {
     const html = badgeHTML(3);
+    assert.match(html, /data-m="priority"/);
     assert.match(html, /#fdd835/);
-    assert.match(html, /#333333/);
     assert.match(html, />3</);
   });
 

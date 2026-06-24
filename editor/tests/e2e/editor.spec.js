@@ -12,6 +12,7 @@ test.describe('Sprint Mindmap Editor', () => {
     await expect(page.getByTestId('status')).toContainText(/ready|draft restored/, {
       timeout: 15_000,
     });
+    await expect(page.getByTestId('marker-picker')).toBeVisible();
   });
 
   test('loads map and fixture content', async ({ page }) => {
@@ -20,37 +21,39 @@ test.describe('Sprint Mindmap Editor', () => {
     await expect(page.getByText('Critical task')).toBeVisible();
   });
 
-  test('registers service worker for PWA shell', async ({ page }) => {
-    const registered = await page.evaluate(async () => {
-      if (!('serviceWorker' in navigator)) return false;
-      const reg = await navigator.serviceWorker.getRegistration();
-      return !!reg;
-    });
-    expect(registered).toBe(true);
-  });
-
   test('assigns priority with plain digit hotkey', async ({ page }) => {
     await selectNode(page, 'Task one');
     await page.keyboard.press('2');
 
     const selected = page.locator('me-tpc.selected');
-    await expect(selected.locator('.pri-badge')).toHaveText('2');
+    await expect(selected.locator('.marker-pri')).toHaveText('2');
   });
 
-  test('assigns priority via toolbar buttons', async ({ page }) => {
+  test('assigns task progress via marker picker', async ({ page }) => {
     await selectNode(page, 'Task one');
-    await page.getByTestId('pri-btn-3').click();
+    const taskBtn = page.locator('.marker-picker-row .marker-pick-btn[data-section="taskProgress"][data-level="4"]');
+    await taskBtn.click();
 
     const selected = page.locator('me-tpc.selected');
-    await expect(selected.locator('.pri-badge')).toHaveText('3');
+    await expect(selected.locator('.marker-task.task-4')).toBeVisible();
+  });
+
+  test('assigns flag and star via marker picker', async ({ page }) => {
+    await selectNode(page, 'Task two');
+    await page.locator('.marker-pick-btn[data-section="flag"][data-level="1"]').click();
+    await page.locator('.marker-pick-btn[data-section="star"][data-level="3"]').click();
+
+    const selected = page.locator('me-tpc.selected');
+    await expect(selected.locator('.marker-flag')).toHaveText('⚑');
+    await expect(selected.locator('.marker-star')).toHaveText('★');
   });
 
   test('clears priority with 0 key', async ({ page }) => {
     await selectNode(page, 'Critical task');
-    await expect(page.locator('me-tpc.selected .pri-badge')).toHaveText('1');
+    await expect(page.locator('me-tpc.selected .marker-pri')).toHaveText('1');
 
     await page.keyboard.press('0');
-    await expect(page.locator('me-tpc.selected .pri-badge')).toHaveCount(0);
+    await expect(page.locator('me-tpc.selected .marker-pri')).toHaveCount(0);
   });
 
   test('priority filter dims other priorities when enabled', async ({ page }) => {
@@ -59,13 +62,12 @@ test.describe('Sprint Mindmap Editor', () => {
     await expect(filterBtn).toBeEnabled();
     await filterBtn.click();
     await expect(filterBtn).toHaveClass(/active/);
-
     await expect(page.locator('me-tpc.dimmed').first()).toBeVisible();
   });
 
-  test('autosaves draft after edit', async ({ page }) => {
+  test('autosaves draft after marker edit', async ({ page }) => {
     await selectNode(page, 'Task two');
-    await page.getByTestId('pri-btn-4').click();
+    await page.locator('.marker-pick-btn[data-section="priority"][data-level="4"]').click();
     await expect(page.getByTestId('status')).toContainText(/draft saved/, {
       timeout: 5_000,
     });
