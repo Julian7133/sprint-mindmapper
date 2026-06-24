@@ -12,6 +12,7 @@ const statusEl = document.getElementById('status');
 const fileNameEl = document.getElementById('file-name');
 const filePanel = document.getElementById('file-panel');
 const fileListEl = document.getElementById('file-list');
+const importInput = document.getElementById('import-input');
 const filterPanel = document.getElementById('priority-filter');
 const filterBtn = document.getElementById('btn-priority-filter');
 const filterBadge = document.getElementById('filter-badge');
@@ -348,6 +349,23 @@ async function createNewFile() {
   await openFile(data.file, { force: true });
 }
 
+async function importFile(file) {
+  const buf = await file.arrayBuffer();
+  const params = new URLSearchParams({
+    filename: file.name,
+  });
+  const res = await fetch(`/api/import?${params}`, {
+    method: 'POST',
+    body: buf,
+  });
+  if (!res.ok) {
+    alert('Import failed');
+    return;
+  }
+  const data = await res.json();
+  await refreshFileList();
+  await openFile(data.file, { force: true });
+}
 
 function toggleFilePanel() {
   filePanel.classList.toggle('hidden');
@@ -531,6 +549,12 @@ document.getElementById('btn-fit').addEventListener('click', () => mind.toCenter
 fileNameEl.addEventListener('click', toggleFilePanel);
 document.getElementById('btn-file-close').addEventListener('click', () => filePanel.classList.add('hidden'));
 document.getElementById('btn-new-file').addEventListener('click', () => createNewFile().catch(console.error));
+document.getElementById('btn-import-file').addEventListener('click', () => importInput.click());
+importInput.addEventListener('change', () => {
+  const file = importInput.files?.[0];
+  importInput.value = '';
+  if (file) importFile(file).catch(console.error);
+});
 filterBtn.addEventListener('click', togglePriorityFilter);
 btnMarkers.addEventListener('click', () => markerPicker.toggle());
 
