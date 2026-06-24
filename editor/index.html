@@ -18,7 +18,7 @@
     <header class="toolbar">
       <div class="toolbar-left">
         <h1>Sprint Mindmap Editor</h1>
-        <button type="button" id="file-name" class="file-name" title="Open file panel"></button>
+        <button type="button" id="file-name" class="file-name" data-testid="file-name" title="Open file panel"></button>
       </div>
       <div class="toolbar-actions">
         <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel (Ctrl/Cmd+Shift+M)">
@@ -56,6 +56,21 @@
         <button type="button" id="btn-file-close" class="panel-close" aria-label="Close">×</button>
       </div>
       <ul id="file-list" class="file-list"></ul>
+      <div id="file-unsaved-guard" class="file-inline-form hidden" data-testid="file-unsaved-guard">
+        <p class="file-inline-hint">Unsaved changes on this file.</p>
+        <div class="inline-form-actions">
+          <button type="button" id="btn-switch-anyway">Switch anyway</button>
+          <button type="button" id="btn-cancel-switch">Cancel</button>
+        </div>
+      </div>
+      <div id="file-new-form" class="file-inline-form hidden" data-testid="file-new-form">
+        <label class="file-inline-label" for="new-file-name">New file</label>
+        <input id="new-file-name" type="text" value="untitled.md" spellcheck="false" />
+        <div class="inline-form-actions">
+          <button type="button" id="btn-create-file">Create</button>
+          <button type="button" id="btn-cancel-new-file">Cancel</button>
+        </div>
+      </div>
       <div class="panel-actions">
         <button type="button" id="btn-new-file">New file</button>
         <button type="button" id="btn-import-file">Import…</button>

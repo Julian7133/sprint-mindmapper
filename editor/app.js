@@ -15,6 +15,9 @@ const filePanel = document.getElementById('file-panel');
 const fileListEl = document.getElementById('file-list');
 const exportPanel = document.getElementById('export-panel');
 const importInput = document.getElementById('import-input');
+const fileNewForm = document.getElementById('file-new-form');
+const newFileNameInput = document.getElementById('new-file-name');
+const fileUnsavedGuard = document.getElementById('file-unsaved-guard');
 const filterPanel = document.getElementById('priority-filter');
 const filterBtn = document.getElementById('btn-priority-filter');
 const filterBadge = document.getElementById('filter-badge');
@@ -32,6 +35,8 @@ let saveTimer = null;
 let renderPollTimer = null;
 let dirty = false;
 let observer;
+let pendingOpenFile = null;
+let renamingFile = null;
 
 const markerPicker = initMarkerPicker({
   panelEl: markerPickerPanel,
@@ -94,6 +99,24 @@ function downloadBlob(blob, filename) {
 function setStatus(text, kind = '') {
   statusEl.textContent = text;
   statusEl.className = `status${kind ? ` ${kind}` : ''}`;
+}
+
+async function readApiError(res, fallback) {
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    if (data?.error) return data.error;
+  } catch {
+    /* not JSON */
+  }
+  return text.trim() || fallback;
+}
+
+function reloadMap(root) {
+  ensureExpanded(root);
+  const err = mind.refresh({ nodeData: root });
+  if (err instanceof Error) throw err;
+  mind.toCenter();
 }
 
 function findById(node, id) {
@@ -298,27 +321,38 @@ async function loadFileContent() {
 
 async function openFile(rel, { force = false } = {}) {
   if (!force && dirty && rel !== activeFile) {
-    const ok = confirm('You have unsaved changes. Switch file anyway?');
-    if (!ok) return false;
+    pendingOpenFile = rel;
+    fileUnsavedGuard.classList.remove('hidden');
+    fileNewForm.classList.add('hidden');
+    return false;
   }
 
-  activeFile = rel;
-  fileNameEl.textContent = pathBasename(rel);
-  renderFileList();
+  pendingOpenFile = null;
+  fileUnsavedGuard.classList.add('hidden');
 
-  const { text } = await loadFileContent();
-  frontmatter = '';
-  selectedId = null;
-  isolateActive = false;
+  try {
+    setStatus('loading…');
+    activeFile = rel;
+    fileNameEl.textContent = pathBasename(rel);
+    renderFileList();
 
-  const parsed = parseMarkdown(text);
-  frontmatter = parsed.frontmatter;
-  ensureExpanded(parsed.root);
-  mind.init({ nodeData: parsed.root });
-  dirty = false;
-  decorate();
-  setStatus('ready');
-  return true;
+    const { text } = await loadFileContent();
+    frontmatter = '';
+    selectedId = null;
+    isolateActive = false;
+
+    const parsed = parseMarkdown(text);
+    frontmatter = parsed.frontmatter;
+    reloadMap(parsed.root);
+    dirty = false;
+    decorate();
+    setStatus('ready');
+    return true;
+  } catch (err) {
+    console.error(err);
+    setStatus('could not open file', 'error');
+    return false;
+  }
 }
 
 function pathBasename(rel) {
@@ -338,72 +372,144 @@ function renderFileList() {
   fileListEl.innerHTML = '';
   for (const rel of workspaceFiles) {
     const li = document.createElement('li');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = rel;
-    btn.classList.toggle('active', rel === activeFile);
-    btn.addEventListener('click', () => {
-      if (rel === activeFile) return;
-      openFile(rel).catch(console.error);
-    });
-    btn.addEventListener('dblclick', () => startRenameFile(rel));
-    li.appendChild(btn);
+    if (renamingFile === rel) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'file-rename-input';
+      input.value = rel;
+      input.dataset.testid = 'file-rename-input';
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commitRenameFile(rel, input.value);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelRenameFile();
+        }
+      });
+      input.addEventListener('blur', () => {
+        commitRenameFile(rel, input.value);
+      });
+      li.appendChild(input);
+      requestAnimationFrame(() => {
+        input.focus();
+        input.select();
+      });
+    } else {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = rel;
+      btn.dataset.testid = 'file-list-item';
+      btn.classList.toggle('active', rel === activeFile);
+      btn.addEventListener('click', () => {
+        if (rel === activeFile) return;
+        openFile(rel).catch(console.error);
+      });
+      btn.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        startRenameFile(rel);
+      });
+      li.appendChild(btn);
+    }
     fileListEl.appendChild(li);
   }
 }
 
-async function startRenameFile(rel) {
-  const next = prompt('Rename file', rel);
-  if (!next || next === rel) return;
-  const res = await fetch('/api/files/rename', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: rel, to: next }),
-  });
-  if (!res.ok) {
-    alert('Rename failed');
+function startRenameFile(rel) {
+  renamingFile = rel;
+  fileNewForm.classList.add('hidden');
+  renderFileList();
+}
+
+function cancelRenameFile() {
+  renamingFile = null;
+  renderFileList();
+}
+
+async function commitRenameFile(from, to) {
+  const next = (to || '').trim();
+  renamingFile = null;
+  if (!next || next === from) {
+    renderFileList();
     return;
   }
-  const data = await res.json();
-  await refreshFileList();
-  if (activeFile === rel) {
-    await openFile(data.file, { force: true });
+  try {
+    const res = await fetch('/api/files/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: next }),
+    });
+    if (!res.ok) {
+      setStatus(await readApiError(res, 'Rename failed'), 'error');
+      renderFileList();
+      return;
+    }
+    const data = await res.json();
+    await refreshFileList();
+    if (activeFile === from) {
+      await openFile(data.file, { force: true });
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus('rename error', 'error');
+    renderFileList();
   }
 }
 
-async function createNewFile() {
-  const name = prompt('New file name', 'untitled.md');
-  if (!name) return;
-  const res = await fetch('/api/files', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) {
-    alert('Could not create file');
-    return;
+function showNewFileForm(show) {
+  fileNewForm.classList.toggle('hidden', !show);
+  fileUnsavedGuard.classList.add('hidden');
+  if (show) {
+    newFileNameInput.focus();
+    newFileNameInput.select();
   }
-  const data = await res.json();
-  await refreshFileList();
-  await openFile(data.file, { force: true });
+}
+
+async function createNewFile(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return;
+  try {
+    setStatus('creating…');
+    const res = await fetch('/api/files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    if (!res.ok) {
+      setStatus(await readApiError(res, 'Could not create file'), 'error');
+      return;
+    }
+    const data = await res.json();
+    showNewFileForm(false);
+    await refreshFileList();
+    await openFile(data.file, { force: true });
+  } catch (err) {
+    console.error(err);
+    setStatus('create error', 'error');
+  }
 }
 
 async function importFile(file) {
-  const buf = await file.arrayBuffer();
-  const params = new URLSearchParams({
-    filename: file.name,
-  });
-  const res = await fetch(`/api/import?${params}`, {
-    method: 'POST',
-    body: buf,
-  });
-  if (!res.ok) {
-    alert('Import failed');
-    return;
+  try {
+    setStatus('importing…');
+    const buf = await file.arrayBuffer();
+    const params = new URLSearchParams({ filename: file.name });
+    const res = await fetch(`/api/import?${params}`, {
+      method: 'POST',
+      body: buf,
+    });
+    if (!res.ok) {
+      setStatus(await readApiError(res, 'Import failed'), 'error');
+      return;
+    }
+    const data = await res.json();
+    await refreshFileList();
+    await openFile(data.file, { force: true });
+    setStatus('imported', 'saved');
+  } catch (err) {
+    console.error(err);
+    setStatus('import error', 'error');
   }
-  const data = await res.json();
-  await refreshFileList();
-  await openFile(data.file, { force: true });
 }
 
 function toggleFilePanel() {
@@ -598,7 +704,30 @@ document.getElementById('btn-collapse-all').addEventListener('click', collapseAl
 document.getElementById('btn-fit').addEventListener('click', () => mind.toCenter());
 fileNameEl.addEventListener('click', toggleFilePanel);
 document.getElementById('btn-file-close').addEventListener('click', () => filePanel.classList.add('hidden'));
-document.getElementById('btn-new-file').addEventListener('click', () => createNewFile().catch(console.error));
+document.getElementById('btn-new-file').addEventListener('click', () => showNewFileForm(true));
+document.getElementById('btn-cancel-new-file').addEventListener('click', () => showNewFileForm(false));
+document.getElementById('btn-create-file').addEventListener('click', () => {
+  createNewFile(newFileNameInput.value).catch(console.error);
+});
+newFileNameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    createNewFile(newFileNameInput.value).catch(console.error);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    showNewFileForm(false);
+  }
+});
+document.getElementById('btn-switch-anyway').addEventListener('click', () => {
+  if (!pendingOpenFile) return;
+  const rel = pendingOpenFile;
+  pendingOpenFile = null;
+  openFile(rel, { force: true }).catch(console.error);
+});
+document.getElementById('btn-cancel-switch').addEventListener('click', () => {
+  pendingOpenFile = null;
+  fileUnsavedGuard.classList.add('hidden');
+});
 document.getElementById('btn-import-file').addEventListener('click', () => importInput.click());
 importInput.addEventListener('change', () => {
   const file = importInput.files?.[0];

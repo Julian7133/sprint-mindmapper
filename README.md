@@ -10,10 +10,13 @@ Task mindmap for sprint planning. One markdown file drives both a **canvas edito
 
 ```bash
 cd editor
+npm ci          # import deps + test tooling (first time)
 node server.mjs
 ```
 
 Open [http://127.0.0.1:8731](http://127.0.0.1:8731). Edits autosave to a draft; **Save** (`Ctrl/Cmd+S`) writes `sprint-tasks.md` and refreshes the markmap HTML.
+
+**Tests** (from repo root): `npm run setup` once, then `npm run test:all`. E2e auto-installs Chromium on first run.
 
 See [editor/README.md](editor/README.md) for shortcuts and details.
 

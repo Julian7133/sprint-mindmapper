@@ -1,0 +1,11 @@
+{
+  "name": "sprint-mindmap",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix editor run setup",
+    "test": "npm --prefix editor run test",
+    "test:e2e": "npm --prefix editor run test:e2e",
+    "test:all": "npm --prefix editor run test:all",
+    "lint": "npm --prefix editor run lint"
+  }
+}

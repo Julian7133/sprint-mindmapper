@@ -276,24 +276,28 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/import' && req.method === 'POST') {
-    const buffer = await readBody(req);
-    const filename = url.searchParams.get('filename') || 'import.opml';
-    const md = await importToMarkdown(filename, buffer);
-    let name = url.searchParams.get('name') || suggestImportFilename(filename);
-    if (!name.endsWith('.md')) name += '.md';
-    let filePath = resolveWorkspaceFile(name);
-    if (fs.existsSync(filePath)) {
-      const stem = name.replace(/\.md$/i, '');
-      let n = 2;
-      while (fs.existsSync(filePath)) {
-        filePath = resolveWorkspaceFile(`${stem}-${n}.md`);
-        n += 1;
+    try {
+      const buffer = await readBody(req);
+      const filename = url.searchParams.get('filename') || 'import.opml';
+      const md = await importToMarkdown(filename, buffer);
+      let name = url.searchParams.get('name') || suggestImportFilename(filename);
+      if (!name.endsWith('.md')) name += '.md';
+      let filePath = resolveWorkspaceFile(name);
+      if (fs.existsSync(filePath)) {
+        const stem = name.replace(/\.md$/i, '');
+        let n = 2;
+        while (fs.existsSync(filePath)) {
+          filePath = resolveWorkspaceFile(`${stem}-${n}.md`);
+          n += 1;
+        }
       }
+      await writeTextAtomic(filePath, md);
+      json(res, 201, {
+        file: path.relative(getWorkspaceRoot(), filePath) || path.basename(filePath),
+      });
+    } catch (err) {
+      json(res, 400, { error: err.message || 'Import failed' });
     }
-    await writeTextAtomic(filePath, md);
-    json(res, 201, {
-      file: path.relative(getWorkspaceRoot(), filePath) || path.basename(filePath),
-    });
     return;
   }
 

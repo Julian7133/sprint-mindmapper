@@ -1,0 +1,43 @@
+---
+description: Require Playwright e2e coverage for user-facing editor workflows
+globs: editor/**/*.{js,mjs,html}
+alwaysApply: false
+---
+
+# E2E coverage for user workflows
+
+User-facing editor behavior is **system critical**. Unit tests alone are not enough.
+
+## When adding or changing user-facing behavior
+
+1. **Add or update a Playwright test** in `editor/tests/e2e/` that exercises the workflow end-to-end (browser + real server).
+2. Prefer **mouse clicks and keyboard shortcuts** the user actually uses — not internal helpers or test-only hooks.
+3. Use **`data-testid`** on new interactive UI (panels, forms, status) so tests stay stable.
+
+## Core workflows that must stay covered
+
+| Workflow | Spec (minimum) |
+|----------|----------------|
+| Load workspace file | `editor.spec.js` |
+| Switch file | `workflows.spec.js` |
+| Create new file | `workflows.spec.js` |
+| Import (OPML / `.mm` / `.xmind`) | `workflows.spec.js` |
+| Save + draft autosave | add when touched |
+| Export PNG / SVG / markmap | add when touched |
+| Edit map (nodes, markers, hotkeys) | `editor.spec.js`, `marker-layout.spec.js` |
+
+If you add a new toolbar action, panel button, or context-menu item, extend the matching spec in the same PR.
+
+## Do not
+
+- Ship file/import/save/export UI without an e2e test.
+- Use `prompt()`, `confirm()`, or `alert()` for core flows — use inline UI testable by Playwright (see `minimal-ui.mdc`).
+- Disable or skip e2e in CI for convenience; e2e runs on **every PR and on main**.
+
+## Verify locally
+
+```bash
+cd editor && npm ci && npx playwright install chromium && npm run test:e2e
+```
+
+Run `npm run test:all` before opening a PR that touches editor behavior.
