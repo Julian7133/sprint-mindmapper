@@ -59,9 +59,20 @@
       <div class="panel-actions">
         <button type="button" id="btn-new-file">New file</button>
         
-        
+        <button type="button" id="btn-export">Export…</button>
       </div>
       
+    </aside>
+    <aside id="export-panel" class="export-panel hidden" data-testid="export-panel" aria-label="Export options">
+      <div class="panel-header">
+        <strong>Export</strong>
+        <button type="button" id="btn-export-close" class="panel-close" aria-label="Close">×</button>
+      </div>
+      <div class="export-actions">
+        <button type="button" id="btn-export-png">Download PNG</button>
+        <button type="button" id="btn-export-svg">Download SVG</button>
+        <button type="button" id="btn-open-markmap">Open markmap HTML</button>
+      </div>
     </aside>
     <aside id="marker-picker" class="marker-picker hidden" data-testid="marker-picker" aria-label="XMind markers"></aside>
 
