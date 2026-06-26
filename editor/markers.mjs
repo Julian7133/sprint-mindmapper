@@ -33,6 +33,38 @@ export const MARKER_SECTIONS = [
 
 const SPAN_RE = /^\s*<span\b([^>]*)>(.*?)<\/span>\s*/i;
 
+export function escapeTopicNewlines(text) {
+  let out = '';
+  for (const ch of text) {
+    if (ch === '\\') out += '\\\\';
+    else if (ch === '\n') out += '\\n';
+    else out += ch;
+  }
+  return out;
+}
+
+export function unescapeTopicNewlines(text) {
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '\\' && i + 1 < text.length) {
+      const next = text[i + 1];
+      if (next === 'n') {
+        out += '\n';
+        i += 1;
+      } else if (next === '\\') {
+        out += '\\';
+        i += 1;
+      } else {
+        out += ch;
+      }
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 function clampLevel(n, max = MAX_LEVEL) {
   if (!Number.isFinite(n)) return undefined;
   if (n < 1 || n > max) return undefined;
@@ -140,6 +172,8 @@ export function parseLineContent(text) {
     result.topic = linkMatch[1];
     result.hyperLink = linkMatch[2];
   }
+
+  result.topic = unescapeTopicNewlines(result.topic);
 
   return result;
 }
