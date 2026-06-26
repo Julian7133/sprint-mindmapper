@@ -98,4 +98,51 @@ markmap:
     assert.equal(b.root.children[0].children[0].topic, 'Docs');
     assert.match(out, /\[Docs\]\(https:\/\/example\.com\/docs\)/);
   });
+
+  it('round-trips multi-line topic text', () => {
+    const topic =
+      'Website Development: "You know how most company websites are\nout of date? Well, what I do is install software that makes it easy for people\nto update their own websites, without the need to pay a web designer each\ntime. In fact, I installed the software for one of my clients recently, and they\nsaved $2,000 a year in web development costs."';
+    const root = {
+      id: 'root',
+      topic: 'Root',
+      children: [
+        {
+          id: 'me1',
+          topic: 'Branch',
+          children: [{ id: 'me2', topic, children: [] }],
+        },
+      ],
+    };
+    const md = serializeMarkdown('', root);
+    const { root: parsed } = parseMarkdown(md);
+    assert.equal(parsed.children[0].children[0].topic, topic);
+  });
+
+  it('parses legacy multi-line nodes split across physical lines', () => {
+    const md = `# Root
+
+## Branch
+### Website Development: "You know how most company websites are
+out of date? Well, what I do is install software."
+### Next task
+`;
+    const { root } = parseMarkdown(md);
+    assert.equal(
+      root.children[0].children[0].topic,
+      'Website Development: "You know how most company websites are\nout of date? Well, what I do is install software."'
+    );
+    assert.equal(root.children[0].children[1].topic, 'Next task');
+  });
+
+  it('round-trips literal backslash-n in topic text', () => {
+    const topic = 'Use \\n for newline in code';
+    const root = {
+      id: 'root',
+      topic: 'Root',
+      children: [{ id: 'me1', topic, children: [] }],
+    };
+    const md = serializeMarkdown('', root);
+    const { root: parsed } = parseMarkdown(md);
+    assert.equal(parsed.children[0].topic, topic);
+  });
 });

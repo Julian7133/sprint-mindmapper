@@ -3,13 +3,15 @@
  * Shared by browser (app.js) and Node (test-roundtrip.mjs, server).
  */
 
-import { parseLineContent, markerPrefixHTML } from './markers.mjs';
+import { parseLineContent, markerPrefixHTML, escapeTopicNewlines } from './markers.mjs';
 
 export {
   badgeHTML,
   priorityMarkerHTML,
   markerPrefixHTML,
   parseLineContent,
+  escapeTopicNewlines,
+  unescapeTopicNewlines,
 } from './markers.mjs';
 
 export function splitFrontmatter(text) {
@@ -67,12 +69,19 @@ export function parseMarkdown(text) {
   let headingLevel = 0;
   let idCounter = 0;
   const nextId = () => ++idCounter;
+  let continuationMode = false;
 
   for (const raw of lines) {
-    if (!raw.trim()) continue;
+    if (!raw.trim()) {
+      if (continuationMode && stack.length) {
+        stack[stack.length - 1].node.topic += '\n';
+      }
+      continue;
+    }
 
     const headingMatch = raw.match(/^(#+)\s+(.*)$/);
     if (headingMatch) {
+      continuationMode = false;
       const level = headingMatch[1].length;
       headingLevel = level;
       const node = lineToNode(level, headingMatch[2], idCounter, nextId);
@@ -84,12 +93,19 @@ export function parseMarkdown(text) {
 
     const bulletMatch = raw.match(/^(\s*)[-*]\s+(.*)$/);
     if (bulletMatch) {
+      continuationMode = false;
       const indent = countIndent(bulletMatch[1]);
       const level = headingLevel + 1 + Math.floor(indent / 2);
       const node = lineToNode(level, bulletMatch[2], idCounter, nextId);
       attachNode(root, stack, level, node, (r) => {
         root = r;
       });
+      continue;
+    }
+
+    if (stack.length) {
+      stack[stack.length - 1].node.topic += `\n${raw}`;
+      continuationMode = true;
     }
   }
 
@@ -138,9 +154,9 @@ function walkNode(node, depth, out) {
           : `${' '.repeat((depth - 3) * 2)}- `;
 
   const markers = depth > 0 ? markerPrefixHTML(node) : '';
-  let topicText = node.topic;
+  let topicText = escapeTopicNewlines(node.topic);
   if (node.hyperLink) {
-    topicText = `[${node.topic}](${node.hyperLink})`;
+    topicText = `[${topicText}](${node.hyperLink})`;
   }
   const text = markers ? `${markers}${topicText}` : topicText;
 
