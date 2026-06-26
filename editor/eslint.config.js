@@ -68,6 +68,7 @@ export default [
       'marker-picker.mjs',
       'priority-hotkeys.mjs',
       'type-to-edit.mjs',
+      'paste-nodes.mjs',
     ],
     languageOptions: {
       globals: globals.browser,

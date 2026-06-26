@@ -8,6 +8,7 @@ import {
   PRIORITY_HOTKEY_HINT,
 } from './priority-hotkeys.mjs';
 import { handleTypeToEdit } from './type-to-edit.mjs';
+import { handlePasteNodes, initPasteChoiceDialog } from './paste-nodes.mjs';
 import { createWorkspace } from './workspace.mjs';
 
 const ws = createWorkspace();
@@ -91,6 +92,18 @@ const mind = new MindElixir({
   allowUndo: true,
   newTopicName: 'New task',
 });
+
+const { showPasteChoiceDialog } = initPasteChoiceDialog(document);
+
+mind.pasteHandler = (e) => {
+  handlePasteNodes(e, mind, {
+    onChange: () => {
+      decorate();
+      scheduleDraftSave();
+    },
+    showDialog: showPasteChoiceDialog,
+  }).catch(console.error);
+};
 
 function updateWorkspaceLabel() {
   if (ws.isFolderMode() && ws.folderName) {
