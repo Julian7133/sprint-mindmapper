@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -136,36 +137,46 @@ async function listMarkdownFiles(dir = getWorkspaceRoot(), base = '') {
   return files.sort();
 }
 
-function runRenderMarkmap(filePath) {
+function runRenderMarkmap(filePath, outputBase) {
   const workspaceRoot = getWorkspaceRoot();
   const relFile = path.relative(workspaceRoot, filePath) || path.basename(filePath);
   if (process.env.SKIP_RENDER === '1') {
     renderState = { status: 'done', message: 'Render skipped (test mode)', file: relFile };
-    return;
+    return Promise.resolve();
   }
-  if (renderState.status === 'running') return;
-  renderState = { status: 'running', message: 'Rendering markmap…', file: relFile };
+  if (renderState.status === 'running' && !outputBase) return Promise.resolve();
 
-  const child = spawn('bash', [RENDER_SCRIPT, filePath], {
-    cwd: REPO_ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  renderState = {
+    status: 'running',
+    message: 'Rendering markmap…',
+    file: outputBase ? path.basename(outputBase) : relFile,
+  };
 
-  let stderr = '';
-  child.stderr.on('data', (chunk) => {
-    stderr += chunk.toString();
-  });
+  const args = outputBase
+    ? [RENDER_SCRIPT, filePath, outputBase]
+    : [RENDER_SCRIPT, filePath];
 
-  child.on('close', (code) => {
-    if (code === 0) {
-      renderState = { status: 'done', message: 'Markmap HTML updated', file: relFile };
-    } else {
-      renderState = {
-        status: 'error',
-        message: stderr.trim() || `render-markmap.sh exited with code ${code}`,
-        file: relFile,
-      };
-    }
+  return new Promise((resolve, reject) => {
+    const child = spawn('bash', args, {
+      cwd: REPO_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stderr = '';
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        renderState = { status: 'done', message: 'Markmap HTML updated', file: relFile };
+        resolve();
+      } else {
+        const message = stderr.trim() || `render-markmap.sh exited with code ${code}`;
+        renderState = { status: 'error', message, file: relFile };
+        reject(new Error(message));
+      }
+    });
   });
 }
 
@@ -275,6 +286,41 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (url.pathname === '/api/import/convert' && req.method === 'POST') {
+    try {
+      const buffer = await readBody(req);
+      const filename = url.searchParams.get('filename') || 'import.opml';
+      const markdown = await importToMarkdown(filename, buffer);
+      const suggestedName = suggestImportFilename(filename);
+      json(res, 200, { markdown, suggestedName });
+    } catch (err) {
+      json(res, 400, { error: err.message || 'Import failed' });
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/render' && req.method === 'POST') {
+    try {
+      const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+      const markdown = body.markdown;
+      const basename = (body.basename || 'render').replace(/[/\\]/g, '-');
+      if (!markdown || typeof markdown !== 'string') {
+        json(res, 400, { error: 'markdown body required' });
+        return;
+      }
+      const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'sprint-mindmap-render-'));
+      const mdPath = path.join(tmpDir, `${basename}.md`);
+      const outputBase = path.join(tmpDir, basename);
+      await writeTextAtomic(mdPath, markdown);
+      await runRenderMarkmap(mdPath, outputBase);
+      const html = await fsp.readFile(`${outputBase}.html`, 'utf8');
+      json(res, 200, { html });
+    } catch (err) {
+      json(res, 500, { error: err.message || 'Render failed' });
+    }
+    return;
+  }
+
   if (url.pathname === '/api/import' && req.method === 'POST') {
     try {
       const buffer = await readBody(req);
@@ -331,7 +377,9 @@ async function handleApi(req, res, url) {
     const body = (await readBody(req)).toString('utf8');
     await writeTextAtomic(filePath, body);
     await writeTextAtomic(draftPath(filePath), body);
-    runRenderMarkmap(filePath);
+    runRenderMarkmap(filePath).catch((err) => {
+      console.error('Render failed:', err.message);
+    });
     json(res, 200, { ok: true, rendering: true });
     return;
   }

@@ -19,6 +19,7 @@
       <div class="toolbar-left">
         <h1>Sprint Mindmap Editor</h1>
         <button type="button" id="file-name" class="file-name" data-testid="file-name" title="Open file panel"></button>
+        <span id="workspace-label" class="workspace-label hidden" data-testid="workspace-label"></span>
       </div>
       <div class="toolbar-actions">
         <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel (Ctrl/Cmd+Shift+M)">
@@ -47,6 +48,11 @@
       </div>
     </header>
 
+    <div id="focus-banner" class="focus-banner hidden" data-testid="focus-banner" role="status">
+      <span id="focus-banner-text"></span>
+      <button type="button" id="btn-exit-focus" class="focus-banner-exit">Exit focus (Shift+F6)</button>
+    </div>
+
     <main id="map" data-testid="map" tabindex="-1"></main>
 
 
@@ -56,6 +62,9 @@
         <button type="button" id="btn-file-close" class="panel-close" aria-label="Close">×</button>
       </div>
       <ul id="file-list" class="file-list"></ul>
+      <p id="folder-picker-hint" class="file-inline-hint hidden" data-testid="folder-picker-hint">
+        Open folder requires Chrome or Edge. Use <code>node server.mjs /path/to/file.md</code> in Safari.
+      </p>
       <div id="file-unsaved-guard" class="file-inline-form hidden" data-testid="file-unsaved-guard">
         <p class="file-inline-hint">Unsaved changes on this file.</p>
         <div class="inline-form-actions">
@@ -72,6 +81,7 @@
         </div>
       </div>
       <div class="panel-actions">
+        <button type="button" id="btn-open-folder">Open folder…</button>
         <button type="button" id="btn-new-file">New file</button>
         <button type="button" id="btn-import-file">Import…</button>
         <button type="button" id="btn-export">Export…</button>
@@ -90,6 +100,20 @@
       </div>
     </aside>
     <aside id="marker-picker" class="marker-picker hidden" data-testid="marker-picker" aria-label="XMind markers"></aside>
+
+    <div id="reconnect-prompt" class="reconnect-prompt hidden" data-testid="reconnect-prompt">
+      <div class="reconnect-dialog" role="dialog" aria-labelledby="reconnect-title">
+        <h2 id="reconnect-title">Reconnect folder</h2>
+        <p>
+          Reconnect to <strong id="reconnect-folder-name">folder</strong> to continue editing your mindmaps.
+        </p>
+        <p class="reconnect-hint">Your browser needs permission to access this folder again.</p>
+        <div class="inline-form-actions">
+          <button type="button" id="btn-reconnect">Reconnect folder</button>
+          <button type="button" id="btn-reconnect-dismiss">Use server workspace</button>
+        </div>
+      </div>
+    </div>
 
     <aside id="priority-filter" class="priority-filter hidden" aria-label="Priority filter">
       <button

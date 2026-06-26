@@ -746,6 +746,83 @@ body {
   display: none;
 }
 
+.workspace-label {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border-radius: 999px;
+}
+
+.workspace-label.hidden {
+  display: none;
+}
+
+.focus-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #e3f2fd;
+  border-bottom: 1px solid #90caf9;
+  color: #0d47a1;
+  font-size: 13px;
+}
+
+.focus-banner.hidden {
+  display: none;
+}
+
+.focus-banner-exit {
+  border: 1px solid #64b5f6;
+  background: #fff;
+  color: #1565c0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.focus-banner-exit:hover {
+  background: #f5fbff;
+}
+
+.reconnect-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 24px;
+}
+
+.reconnect-prompt.hidden {
+  display: none;
+}
+
+.reconnect-dialog {
+  width: min(420px, 100%);
+  padding: 20px 22px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+}
+
+.reconnect-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.reconnect-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
 @media (max-width: 900px) {
   .legend {
     display: none;

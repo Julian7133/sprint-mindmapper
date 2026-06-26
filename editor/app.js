@@ -8,6 +8,9 @@ import {
   PRIORITY_HOTKEY_HINT,
 } from './priority-hotkeys.mjs';
 import { handleTypeToEdit } from './type-to-edit.mjs';
+import { createWorkspace } from './workspace.mjs';
+
+const ws = createWorkspace();
 
 const statusEl = document.getElementById('status');
 const fileNameEl = document.getElementById('file-name');
@@ -25,6 +28,16 @@ const filterLabel = document.getElementById('filter-label');
 const filterHint = document.getElementById('filter-hint');
 const markerPickerPanel = document.getElementById('marker-picker');
 const btnMarkers = document.getElementById('btn-markers');
+const workspaceLabelEl = document.getElementById('workspace-label');
+const focusBanner = document.getElementById('focus-banner');
+const focusBannerText = document.getElementById('focus-banner-text');
+const btnExitFocus = document.getElementById('btn-exit-focus');
+const reconnectPrompt = document.getElementById('reconnect-prompt');
+const reconnectFolderNameEl = document.getElementById('reconnect-folder-name');
+const btnReconnect = document.getElementById('btn-reconnect');
+const btnReconnectDismiss = document.getElementById('btn-reconnect-dismiss');
+const btnOpenFolder = document.getElementById('btn-open-folder');
+const folderPickerHint = document.getElementById('folder-picker-hint');
 
 let frontmatter = '';
 let selectedId = null;
@@ -79,12 +92,53 @@ const mind = new MindElixir({
   newTopicName: 'New task',
 });
 
-function fileQuery() {
-  return activeFile ? `?file=${encodeURIComponent(activeFile)}` : '';
+function updateWorkspaceLabel() {
+  if (ws.isFolderMode() && ws.folderName) {
+    workspaceLabelEl.textContent = ws.folderName;
+    workspaceLabelEl.classList.remove('hidden');
+  } else {
+    workspaceLabelEl.classList.add('hidden');
+  }
 }
 
-function apiUrl(path) {
-  return `${path}${fileQuery()}`;
+function updateFolderPickerUi() {
+  btnOpenFolder.disabled = !ws.supportsNativeFolder;
+  folderPickerHint.classList.toggle('hidden', ws.supportsNativeFolder);
+}
+
+function updateFocusBanner() {
+  if (mind.isFocusMode && mind.nodeData?.topic) {
+    focusBannerText.textContent = `Focus: ${mind.nodeData.topic}`;
+    focusBanner.classList.remove('hidden');
+  } else {
+    focusBanner.classList.add('hidden');
+  }
+}
+
+function exitFocusMode() {
+  if (!mind.isFocusMode) return;
+  mind.cancelFocus();
+  updateFocusBanner();
+  decorate();
+  mind.toCenter();
+}
+
+function enterFocusMode() {
+  const nodeEl = mind.currentNode;
+  if (!nodeEl?.nodeObj?.parent) return;
+  mind.focusNode(nodeEl);
+  updateFocusBanner();
+  decorate();
+  mind.toCenter();
+}
+
+function showReconnectPrompt(folderLabel) {
+  reconnectFolderNameEl.textContent = folderLabel;
+  reconnectPrompt.classList.remove('hidden');
+}
+
+function hideReconnectPrompt() {
+  reconnectPrompt.classList.add('hidden');
 }
 
 function downloadBlob(blob, filename) {
@@ -99,17 +153,6 @@ function downloadBlob(blob, filename) {
 function setStatus(text, kind = '') {
   statusEl.textContent = text;
   statusEl.className = `status${kind ? ` ${kind}` : ''}`;
-}
-
-async function readApiError(res, fallback) {
-  const text = await res.text();
-  try {
-    const data = JSON.parse(text);
-    if (data?.error) return data.error;
-  } catch {
-    /* not JSON */
-  }
-  return text.trim() || fallback;
 }
 
 function reloadMap(root) {
@@ -178,6 +221,7 @@ function decorate() {
 
   updatePriorityFilterUI(selected);
   markerPicker.refresh();
+  updateFocusBanner();
   observer?.observe(container, {
     childList: true,
     subtree: true,
@@ -244,12 +288,7 @@ async function saveDraft() {
   try {
     const data = mind.getData().nodeData;
     const md = serializeMarkdown(frontmatter, data);
-    const res = await fetch(apiUrl('/api/draft'), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'text/plain' },
-      body: md,
-    });
-    if (!res.ok) throw new Error(`Draft save failed (${res.status})`);
+    await ws.writeDraft(activeFile, md);
     setStatus('draft saved');
   } catch (err) {
     console.error(err);
@@ -262,15 +301,14 @@ async function saveMarkdown() {
     setStatus('saving…');
     const data = mind.getData().nodeData;
     const md = serializeMarkdown(frontmatter, data);
-    const res = await fetch(apiUrl('/api/markdown'), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'text/plain' },
-      body: md,
-    });
-    if (!res.ok) throw new Error(`Save failed (${res.status})`);
+    const result = await ws.saveMarkdown(activeFile, md);
     dirty = false;
     setStatus('saved', 'saved');
-    pollRenderStatus();
+    if (result.rendering) {
+      pollRenderStatus();
+    } else {
+      setStatus('saved · markmap updated', 'saved');
+    }
   } catch (err) {
     console.error(err);
     setStatus('save error', 'error');
@@ -281,8 +319,7 @@ function pollRenderStatus() {
   clearInterval(renderPollTimer);
   renderPollTimer = setInterval(async () => {
     try {
-      const res = await fetch('/api/render-status');
-      const data = await res.json();
+      const data = await ws.pollRenderStatus();
       if (data.status === 'running') {
         setStatus('rendering markmap…');
       } else if (data.status === 'done') {
@@ -301,19 +338,18 @@ function pollRenderStatus() {
 }
 
 async function loadFileContent() {
-  const infoRes = await fetch(apiUrl('/api/info'));
-  const info = await infoRes.json();
+  const rel = activeFile || ws.getActiveFile();
+  const info = await ws.getInfo();
 
   let text;
-  if (info.draftExists) {
-    text = await (await fetch(apiUrl('/api/draft'))).text();
-    if (text.trim()) {
-      setStatus('draft restored');
-    } else {
-      text = await (await fetch(apiUrl('/api/markdown'))).text();
-    }
+  const draft = rel ? await ws.readDraft(rel) : '';
+  if (draft.trim()) {
+    text = draft;
+    setStatus('draft restored');
+  } else if (rel) {
+    text = await ws.readMarkdown(rel);
   } else {
-    text = await (await fetch(apiUrl('/api/markdown'))).text();
+    text = '# Untitled\n';
   }
 
   return { info, text };
@@ -333,6 +369,7 @@ async function openFile(rel, { force = false } = {}) {
   try {
     setStatus('loading…');
     activeFile = rel;
+    ws.setActiveFile(rel);
     fileNameEl.textContent = pathBasename(rel);
     renderFileList();
 
@@ -346,6 +383,7 @@ async function openFile(rel, { force = false } = {}) {
     reloadMap(parsed.root);
     dirty = false;
     decorate();
+    await ws.persistActiveFile(rel);
     setStatus('ready');
     return true;
   } catch (err) {
@@ -361,10 +399,11 @@ function pathBasename(rel) {
 }
 
 async function refreshFileList() {
-  const res = await fetch('/api/files');
-  const data = await res.json();
-  workspaceFiles = data.files || [];
-  if (!activeFile) activeFile = data.defaultFile || data.activeFile;
+  workspaceFiles = await ws.listFiles();
+  if (!activeFile) {
+    const info = await ws.getInfo();
+    activeFile = info.activeFile || info.defaultFile;
+  }
   renderFileList();
 }
 
@@ -434,24 +473,14 @@ async function commitRenameFile(from, to) {
     return;
   }
   try {
-    const res = await fetch('/api/files/rename', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: next }),
-    });
-    if (!res.ok) {
-      setStatus(await readApiError(res, 'Rename failed'), 'error');
-      renderFileList();
-      return;
-    }
-    const data = await res.json();
+    const rel = await ws.renameFile(from, next);
     await refreshFileList();
     if (activeFile === from) {
-      await openFile(data.file, { force: true });
+      await openFile(rel, { force: true });
     }
   } catch (err) {
     console.error(err);
-    setStatus('rename error', 'error');
+    setStatus(err.message || 'rename error', 'error');
     renderFileList();
   }
 }
@@ -470,22 +499,13 @@ async function createNewFile(name) {
   if (!trimmed) return;
   try {
     setStatus('creating…');
-    const res = await fetch('/api/files', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    });
-    if (!res.ok) {
-      setStatus(await readApiError(res, 'Could not create file'), 'error');
-      return;
-    }
-    const data = await res.json();
+    const rel = await ws.createFile(trimmed);
     showNewFileForm(false);
     await refreshFileList();
-    await openFile(data.file, { force: true });
+    await openFile(rel, { force: true });
   } catch (err) {
     console.error(err);
-    setStatus('create error', 'error');
+    setStatus(err.message || 'create error', 'error');
   }
 }
 
@@ -493,22 +513,31 @@ async function importFile(file) {
   try {
     setStatus('importing…');
     const buf = await file.arrayBuffer();
-    const params = new URLSearchParams({ filename: file.name });
-    const res = await fetch(`/api/import?${params}`, {
-      method: 'POST',
-      body: buf,
-    });
-    if (!res.ok) {
-      setStatus(await readApiError(res, 'Import failed'), 'error');
-      return;
-    }
-    const data = await res.json();
+    const data = await ws.importBinary(file.name, buf);
     await refreshFileList();
     await openFile(data.file, { force: true });
     setStatus('imported', 'saved');
   } catch (err) {
     console.error(err);
-    setStatus('import error', 'error');
+    setStatus(err.message || 'import error', 'error');
+  }
+}
+
+async function openFolderPicker() {
+  if (!ws.supportsNativeFolder) return;
+  try {
+    setStatus('opening folder…');
+    await ws.openFolderPicker();
+    hideReconnectPrompt();
+    updateWorkspaceLabel();
+    await loadInitialData();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      setStatus('ready');
+      return;
+    }
+    console.error(err);
+    setStatus(err.message || 'could not open folder', 'error');
   }
 }
 
@@ -536,14 +565,36 @@ async function exportSvg() {
 }
 
 function openMarkmapHtml() {
-  window.open(apiUrl('/api/markmap'), '_blank', 'noopener');
+  ws.getMarkmapHtml(activeFile)
+    .then((html) => {
+      if (!html) {
+        setStatus('markmap not found — save first', 'error');
+        return;
+      }
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    })
+    .catch((err) => {
+      console.error(err);
+      setStatus('could not open markmap', 'error');
+    });
 }
 
 async function loadInitialData() {
-  const infoRes = await fetch('/api/info');
-  const info = await infoRes.json();
+  const info = await ws.getInfo();
   activeFile = info.activeFile || info.defaultFile;
-  fileNameEl.textContent = info.markdownName;
+  ws.setActiveFile(activeFile);
+  fileNameEl.textContent = info.markdownName || pathBasename(activeFile || '');
+  updateWorkspaceLabel();
+  updateFolderPickerUi();
+
+  if (!activeFile) {
+    setStatus('no markdown files in folder', 'error');
+    await refreshFileList();
+    return;
+  }
 
   const { text } = await loadFileContent();
 
@@ -639,6 +690,15 @@ function bindHotkeys() {
       mind.toCenter();
     }
 
+    if (e.key === 'F6' && !isEditing()) {
+      e.preventDefault();
+      if (e.shiftKey) {
+        exitFocusMode();
+      } else {
+        enterFocusMode();
+      }
+    }
+
     if (e.code === 'Space' && !isEditing() && mind.container.contains(e.target)) {
       const nodeEl = mind.currentNode;
       if (nodeEl) {
@@ -698,6 +758,31 @@ function collapseAll() {
   scheduleDraftSave();
 }
 
+document.getElementById('btn-open-folder').addEventListener('click', () => {
+  openFolderPicker().catch(console.error);
+});
+btnExitFocus.addEventListener('click', exitFocusMode);
+btnReconnect.addEventListener('click', () => {
+  ws.reconnectSavedFolder()
+    .then(() => {
+      hideReconnectPrompt();
+      updateWorkspaceLabel();
+      return loadInitialData();
+    })
+    .catch((err) => {
+      console.error(err);
+      setStatus('could not reconnect folder', 'error');
+    });
+});
+btnReconnectDismiss.addEventListener('click', () => {
+  ws.dismissSavedFolder()
+    .then(() => {
+      hideReconnectPrompt();
+      updateWorkspaceLabel();
+      return loadInitialData();
+    })
+    .catch(console.error);
+});
 document.getElementById('btn-save').addEventListener('click', saveMarkdown);
 document.getElementById('btn-expand-all').addEventListener('click', expandAll);
 document.getElementById('btn-collapse-all').addEventListener('click', collapseAll);
@@ -769,11 +854,27 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 document.getElementById('hotkey-hint').textContent =
-  `${PRIORITY_HOTKEY_HINT} · Cmd+Shift+M markers`;
+  `${PRIORITY_HOTKEY_HINT} · F6 focus · Cmd+Shift+M markers`;
 
 setupObserver();
 setupBus();
-loadInitialData().catch((err) => {
+
+async function boot() {
+  updateFolderPickerUi();
+  const initResult = await ws.init();
+  if (initResult.awaitingReconnect) {
+    showReconnectPrompt(initResult.folderLabel);
+    return;
+  }
+  try {
+    await loadInitialData();
+  } catch (err) {
+    console.error(err);
+    setStatus('load error', 'error');
+  }
+}
+
+boot().catch((err) => {
   console.error(err);
   setStatus('load error', 'error');
 });

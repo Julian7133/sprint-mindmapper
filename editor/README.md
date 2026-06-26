@@ -12,6 +12,8 @@ node server.mjs
 
 Open [http://127.0.0.1:8731](http://127.0.0.1:8731)
 
+**Open folder…** (Files panel): pick a folder of `.md` mindmaps via the native directory picker (Chrome/Edge). The choice is remembered; on next launch you’ll see **Reconnect folder** until you grant access again. Safari: use `node server.mjs /path/to/file.md` instead.
+
 Works offline (Mind Elixir is bundled in `vendor/`). Static assets are cached via a service worker for PWA install.
 
 ## Install as app (macOS)
@@ -61,6 +63,8 @@ Draft cache: `sprint-tasks.md.editor-draft` (same folder as the markdown file).
 | Toolbar Markers panel | Priority, task, flag, star, people |
 | Cmd/Ctrl+Shift+P | Toggle same-priority filter |
 | Cmd/Ctrl+S | Save to markdown + render markmap |
+| F6 | Focus on selected branch (MindElixir focus mode) |
+| Shift+F6 | Exit focus mode |
 | F1 / Fit | Center map |
 | Space | Expand/collapse selected node |
 
