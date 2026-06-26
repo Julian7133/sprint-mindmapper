@@ -37,6 +37,7 @@ The editor is a **Progressive Web App**. The local server must be running (`node
 1. Edit tasks on the canvas (Tab = child, Enter = sibling, drag to reorder).
    - **Type-to-edit**: select a task and start typing to replace its label.
    - **Preserve edit**: double-click or F2 to edit with existing text intact.
+   - **Multi-line paste**: select a task and paste plain text — choose to split into siblings, add as a child outline, or keep as one topic (XMind-style). Bullets and indented lines are detected automatically.
 2. Select a task, then set markers in the **Markers** panel (bottom-left):
    - **Priority** 1–7 (quick: **Cmd/Ctrl+1…7**, clear **Cmd/Ctrl+Shift+0**)
    - **Task** progress (start → 12% → … → done)
@@ -56,6 +57,7 @@ Draft cache: `sprint-tasks.md.editor-draft` (same folder as the markdown file).
 | Tab | Add child |
 | Enter | Add sibling |
 | Type (node selected) | Overwrite label (type-to-edit) |
+| Paste (node selected) | Multi-line: split into siblings / child outline / one topic |
 | Double-click / F2 | Edit label (preserve existing text) |
 | Cmd/Ctrl+1…7 | Set priority (task selected) |
 | Cmd/Ctrl+Shift+0 | Clear priority |

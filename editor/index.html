@@ -115,6 +115,24 @@
       </div>
     </div>
 
+    <div id="paste-choice" class="paste-choice hidden" data-testid="paste-choice" role="dialog" aria-labelledby="paste-choice-title">
+      <div class="paste-choice-dialog">
+        <h2 id="paste-choice-title">Paste multiple items</h2>
+        <p id="paste-choice-hint" class="paste-choice-hint"></p>
+        <ul id="paste-choice-preview" class="paste-choice-preview"></ul>
+        <div class="paste-choice-actions">
+          <button type="button" id="paste-choice-siblings" class="paste-choice-primary">Add siblings</button>
+          <button type="button" id="paste-choice-children">Add as child outline</button>
+          <button type="button" id="paste-choice-single">Keep as one topic</button>
+          <button type="button" id="paste-choice-cancel" class="paste-choice-cancel">Cancel</button>
+        </div>
+        <label class="paste-choice-remember">
+          <input type="checkbox" id="paste-choice-remember" />
+          Remember my choice
+        </label>
+      </div>
+    </div>
+
     <aside id="priority-filter" class="priority-filter hidden" aria-label="Priority filter">
       <button
         type="button"
