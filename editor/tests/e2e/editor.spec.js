@@ -149,4 +149,44 @@ test.describe('Sprint Mindmap Editor', () => {
       timeout: 5_000,
     });
   });
+
+  test('drag moves a branch to a new sibling position', async ({ page }) => {
+    const getChildTopics = (parentLabel) =>
+      page.evaluate((label) => {
+        const topicText = (tpc) =>
+          (tpc.querySelector('.text')?.textContent || tpc.textContent).trim();
+        const parent = [...document.querySelectorAll('me-tpc')].find(
+          (tpc) => topicText(tpc) === label
+        );
+        if (!parent?.nodeObj?.children) return [];
+        return parent.nodeObj.children.map((child) => child.topic);
+      }, parentLabel);
+
+    const initial = await getChildTopics('Branch A');
+    expect(initial).toEqual(['Task one', 'Task two']);
+
+    await selectNode(page, 'Task one');
+
+    const source = page.locator('me-tpc', { hasText: 'Task one' }).first();
+    const target = page.locator('me-tpc', { hasText: 'Task two' }).first();
+    const sourceBox = await source.boundingBox();
+    const targetBox = await target.boundingBox();
+    expect(sourceBox).toBeTruthy();
+    expect(targetBox).toBeTruthy();
+
+    const sx = sourceBox.x + sourceBox.width / 2;
+    const sy = sourceBox.y + sourceBox.height / 2;
+    const dropX = targetBox.x + targetBox.width / 2;
+    const dropY = targetBox.y + targetBox.height + 1;
+
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.mouse.move(sx + 30, sy + 30, { steps: 5 });
+    await page.mouse.move(dropX, dropY, { steps: 10 });
+    await page.mouse.up();
+
+    await expect
+      .poll(async () => getChildTopics('Branch A'))
+      .toEqual(['Task two', 'Task one']);
+  });
 });

@@ -358,6 +358,21 @@ body {
   background: #fff;
 }
 
+/* MindElixir drag ghost must not block elementFromPoint drop targeting */
+.map-container .mind-elixir-ghost {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Branch drag in progress: the ghost is shown (display: block) only after the
+   vendor's drag threshold is crossed, so this avoids the click-flicker of an
+   :active grabbing cursor. Mirrors the vendor .space-pressed pan pattern.
+   Pinned to MindElixir 5.12.2's inline ghost styling. */
+.map-container:has(.mind-elixir-ghost[style*='display: block']),
+.map-container:has(.mind-elixir-ghost[style*='display: block']) * {
+  cursor: grabbing !important;
+}
+
 .pri-badge,
 .marker-pri,
 .marker-icon {

@@ -34,7 +34,8 @@ The editor is a **Progressive Web App**. The local server must be running (`node
 
 ## Workflow
 
-1. Edit tasks on the canvas (Tab = child, Enter = sibling, drag to reorder).
+1. Edit tasks on the canvas (Tab = child, Enter = sibling, **drag to reorder or reparent branches**).
+   - **Drag a branch**: select a task and drag it — drop above/below a sibling to reorder, or onto a node to make it a child. A blue insert preview shows the drop zone. The whole subtree moves with the node. Root cannot be dragged; hold Space and drag to pan the canvas instead.
    - **Type-to-edit**: select a task and start typing to replace its label.
    - **Preserve edit**: double-click or F2 to edit with existing text intact.
    - **Multi-line paste**: select a task and paste plain text — choose to split into siblings, add as a child outline, or keep as one topic (XMind-style). Bullets and indented lines are detected automatically.
@@ -56,6 +57,7 @@ Draft cache: `sprint-tasks.md.editor-draft` (same folder as the markdown file).
 |-----|--------|
 | Tab | Add child |
 | Enter | Add sibling |
+| Drag node | Move branch (before / after / child drop zones) |
 | Type (node selected) | Overwrite label (type-to-edit) |
 | Paste (node selected) | Multi-line: split into siblings / child outline / one topic |
 | Double-click / F2 | Edit label (preserve existing text) |
