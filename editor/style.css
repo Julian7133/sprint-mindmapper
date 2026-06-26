@@ -358,6 +358,20 @@ body {
   background: #fff;
 }
 
+/* MindElixir drag ghost must not block elementFromPoint drop targeting */
+.map-container .mind-elixir-ghost {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.map-container me-parent me-tpc {
+  cursor: grab;
+}
+
+.map-container me-parent me-tpc:active {
+  cursor: grabbing;
+}
+
 .pri-badge,
 .marker-pri,
 .marker-icon {
