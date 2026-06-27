@@ -64,6 +64,7 @@ describe('paste-nodes', () => {
   it('hasOutlineStructure detects bullets and indents', () => {
     assert.equal(hasOutlineStructure(['plain', 'lines']), false);
     assert.equal(hasOutlineStructure(['- bullet']), true);
+    assert.equal(hasOutlineStructure(['1. ordered']), true);
     assert.equal(hasOutlineStructure(['  nested']), true);
   });
 
@@ -73,6 +74,19 @@ describe('paste-nodes', () => {
     assert.equal(nodes[0].topic, 'Root item');
     assert.equal(nodes[0].children[0].topic, 'Nested');
     assert.equal(nodes[1].topic, 'Other');
+  });
+
+  it('analyzes numbered outlines as nested children', () => {
+    const analysis = analyzePasteText('1. Root item\n  1) Nested\n2. Other');
+
+    assert.equal(analysis.ambiguous, true);
+    assert.equal(analysis.hasStructure, true);
+    assert.equal(analysis.defaultAction, 'children');
+    assert.equal(analysis.tree.length, 2);
+    assert.equal(analysis.tree[0].topic, 'Root item');
+    assert.equal(analysis.tree[0].children[0].topic, 'Nested');
+    assert.equal(analysis.tree[1].topic, 'Other');
+    assert.deepEqual(nodesForAction(analysis, 'children', false), analysis.tree);
   });
 
   it('lineToPasteNode extracts priority markers', () => {

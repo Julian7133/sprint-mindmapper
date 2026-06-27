@@ -91,7 +91,7 @@ export function parseMarkdown(text) {
       continue;
     }
 
-    const bulletMatch = raw.match(/^(\s*)[-*]\s+(.*)$/);
+    const bulletMatch = raw.match(/^(\s*)(?:[-*]|\d+[.)])\s+(.*)$/);
     if (bulletMatch) {
       continuationMode = false;
       const indent = countIndent(bulletMatch[1]);

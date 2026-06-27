@@ -57,6 +57,20 @@ describe('markmap-convert', () => {
     assert.equal(tasks[0].children[0].children[0].topic, 'deeper');
   });
 
+  it('parses numbered list levels like bullet outlines', () => {
+    const { root } = parseMarkdown(`# Root
+1. First ordered task
+  1) Nested ordered task
+2. Second ordered task
+`);
+
+    assert.deepEqual(
+      root.children.map((child) => child.topic),
+      ['First ordered task', 'Second ordered task']
+    );
+    assert.equal(root.children[0].children[0].topic, 'Nested ordered task');
+  });
+
   it('serializes priority badges with XMind colors', () => {
     const html = badgeHTML(3);
     assert.match(html, /data-m="priority"/);
