@@ -317,12 +317,9 @@ describe('paste-nodes', () => {
 
   it('handlePasteNodes overwrites a single selected topic and applies parsed markers', async () => {
     const fixture = createMindFixture();
-    const line = `${markerPrefixHTML({
-      id: 'x',
-      topic: 'T',
-      priority: 2,
-      taskProgress: 5,
-    })}Urgent follow-up`;
+    const line =
+      '<span data-m="priority" data-v="2">2</span> ' +
+      '<span data-m="task" data-v="5"></span>Urgent follow-up';
     const event = createPasteEvent(line);
     let onChangeCalls = 0;
 
