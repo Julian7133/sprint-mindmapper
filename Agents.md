@@ -175,6 +175,14 @@ extension/
 - `init()` restores handle from IndexedDB (`chrome.storage.local` or `indexedDB` directly)
 - `saveMarkdown` calls in-browser markmap renderer instead of `/api/render`
 - `importBinary` runs `importToMarkdown` from `import-formats.mjs` client-side (already pure JS)
+
+### Extension boot gotchas (learned the hard way — do NOT repeat)
+
+- **MV3 CSP blocks inline `<script type="importmap">`.** The redirect from `workspace.mjs` → `workspace-extension.mjs` must be a real file: `extension/editor/workspace.mjs` is a one-line re-export (`export * from './workspace-extension.mjs'`), NOT an import map. `app.js` imports `./workspace.mjs` unchanged.
+- **`app.js` MUST be copied** into `extension/editor/` (it is the editor entry point). Easy to forget when copying the "shared modules".
+- **Lazy-import heavy deps.** `workspace-extension.mjs` imports `import-formats.mjs` (which pulls `fast-xml-parser` + `jszip`) lazily inside `importBinary`, so a missing/broken dep doesn't crash module load at startup.
+- **`import-formats.mjs` needs `fast-xml-parser` + `jszip`** in `extension/package.json` dependencies — not just devDeps.
+- **Script/asset paths must be relative** (`./app.js`, `./vendor/style.css`), never root-absolute (`/app.js`) — the extension root ≠ `editor/`.
 - `pollRenderStatus()` always returns `{ status: 'idle' }`
 
 ---
