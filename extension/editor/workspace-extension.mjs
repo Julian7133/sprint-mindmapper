@@ -6,7 +6,6 @@ import {
   writeDraftKey,
   deleteDraftKey,
 } from './workspace-storage.mjs';
-import { importToMarkdown, suggestImportFilename } from './import-formats.mjs';
 
 function draftKey(folderId, relPath) {
   return `${folderId}:${relPath}`;
@@ -243,6 +242,7 @@ export function createWorkspace() {
 
     async importBinary(filename, buffer) {
       requireHandle();
+      const { importToMarkdown, suggestImportFilename } = await import('./import-formats.mjs');
       const markdown = await importToMarkdown(filename, buffer);
       let name = suggestImportFilename(filename);
       const existing = await listMarkdownInDir(dirHandle);

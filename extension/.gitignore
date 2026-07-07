@@ -1,4 +1,5 @@
 node_modules/
+/test-results/
 editor/embedded-assets.mjs
 editor/markmap-bundle.js
 editor/markmap-bundle.js.map

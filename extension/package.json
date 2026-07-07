@@ -6,7 +6,9 @@
     "build": "node build.js",
     "build:watch": "node build.js --watch",
     "pretest": "node build-assets.mjs",
-    "test": "vitest run"
+    "test": "vitest run tests/unit",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
   },
   "dependencies": {
     "fast-xml-parser": "^5.2.5",
@@ -15,6 +17,7 @@
     "markmap-view": "^0.18"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48",
     "esbuild": "^0.24",
     "vitest": "^2"
   }
