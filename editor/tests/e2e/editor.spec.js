@@ -6,6 +6,39 @@ async function selectNode(page, label) {
   await expect(node).toHaveClass(/selected/);
 }
 
+async function getChildTopics(page, parentLabel) {
+  return page.evaluate((label) => {
+    const topicText = (tpc) =>
+      (tpc.querySelector('.text')?.textContent || tpc.textContent).trim();
+    const parent = [...document.querySelectorAll('me-tpc')].find(
+      (tpc) => topicText(tpc) === label
+    );
+    if (!parent?.nodeObj?.children) return [];
+    return parent.nodeObj.children.map((child) => child.topic);
+  }, parentLabel);
+}
+
+async function dragNode(page, sourceLabel, targetLabel, dropPoint) {
+  await selectNode(page, sourceLabel);
+
+  const source = page.locator('me-tpc', { hasText: sourceLabel }).first();
+  const target = page.locator('me-tpc', { hasText: targetLabel }).first();
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).toBeTruthy();
+  expect(targetBox).toBeTruthy();
+
+  const sx = sourceBox.x + sourceBox.width / 2;
+  const sy = sourceBox.y + sourceBox.height / 2;
+  const { x: dropX, y: dropY } = dropPoint(targetBox);
+
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move(sx + 30, sy + 30, { steps: 5 });
+  await page.mouse.move(dropX, dropY, { steps: 10 });
+  await page.mouse.up();
+}
+
 test.describe('Sprint Mindmap Editor', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -151,42 +184,31 @@ test.describe('Sprint Mindmap Editor', () => {
   });
 
   test('drag moves a branch to a new sibling position', async ({ page }) => {
-    const getChildTopics = (parentLabel) =>
-      page.evaluate((label) => {
-        const topicText = (tpc) =>
-          (tpc.querySelector('.text')?.textContent || tpc.textContent).trim();
-        const parent = [...document.querySelectorAll('me-tpc')].find(
-          (tpc) => topicText(tpc) === label
-        );
-        if (!parent?.nodeObj?.children) return [];
-        return parent.nodeObj.children.map((child) => child.topic);
-      }, parentLabel);
-
-    const initial = await getChildTopics('Branch A');
+    const initial = await getChildTopics(page, 'Branch A');
     expect(initial).toEqual(['Task one', 'Task two']);
 
-    await selectNode(page, 'Task one');
-
-    const source = page.locator('me-tpc', { hasText: 'Task one' }).first();
-    const target = page.locator('me-tpc', { hasText: 'Task two' }).first();
-    const sourceBox = await source.boundingBox();
-    const targetBox = await target.boundingBox();
-    expect(sourceBox).toBeTruthy();
-    expect(targetBox).toBeTruthy();
-
-    const sx = sourceBox.x + sourceBox.width / 2;
-    const sy = sourceBox.y + sourceBox.height / 2;
-    const dropX = targetBox.x + targetBox.width / 2;
-    const dropY = targetBox.y + targetBox.height + 1;
-
-    await page.mouse.move(sx, sy);
-    await page.mouse.down();
-    await page.mouse.move(sx + 30, sy + 30, { steps: 5 });
-    await page.mouse.move(dropX, dropY, { steps: 10 });
-    await page.mouse.up();
+    await dragNode(page, 'Task one', 'Task two', (targetBox) => ({
+      x: targetBox.x + targetBox.width / 2,
+      y: targetBox.y + targetBox.height + 1,
+    }));
 
     await expect
-      .poll(async () => getChildTopics('Branch A'))
+      .poll(async () => getChildTopics(page, 'Branch A'))
       .toEqual(['Task two', 'Task one']);
+  });
+
+  test('drag reparents a branch as another node child', async ({ page }) => {
+    expect(await getChildTopics(page, 'Branch A')).toEqual(['Task one', 'Task two']);
+    expect(await getChildTopics(page, 'Branch B')).toEqual(['Critical task']);
+
+    await dragNode(page, 'Task two', 'Branch B', (targetBox) => ({
+      x: targetBox.x + targetBox.width / 2,
+      y: targetBox.y + targetBox.height / 2,
+    }));
+
+    await expect.poll(async () => getChildTopics(page, 'Branch A')).toEqual(['Task one']);
+    await expect
+      .poll(async () => getChildTopics(page, 'Branch B'))
+      .toEqual(['Critical task', 'Task two']);
   });
 });
