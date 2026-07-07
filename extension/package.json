@@ -1,0 +1,19 @@
+{
+  "name": "auramindmap-extension",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "build:watch": "node build.js --watch",
+    "pretest": "node build-assets.mjs",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "markmap-lib": "^0.18",
+    "markmap-view": "^0.18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24",
+    "vitest": "^2"
+  }
+}
