@@ -6,18 +6,18 @@
     <meta name="theme-color" content="#1e88e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Sprint Map" />
-    <title>Mindmap Editor</title>
-    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icons/icon.svg" />
-    <link rel="stylesheet" href="/vendor/style.css" />
-    <link rel="stylesheet" href="/style.css" />
+    <meta name="apple-mobile-web-app-title" content="AuraMindmap" />
+    <title>AuraMindmap</title>
+    <link rel="icon" href="../icons/icon-48.png" type="image/png" />
+    <link rel="apple-touch-icon" href="../icons/icon-128.png" />
+    <link rel="stylesheet" href="./vendor/style.css" />
+    <link rel="stylesheet" href="./style.css" />
     <script src="./service-worker-register.js"></script>
   </head>
   <body>
     <header class="toolbar">
       <div class="toolbar-left">
-        <h1>Sprint Mindmap Editor</h1>
+        <h1>AuraMindmap</h1>
         <button type="button" id="file-name" class="file-name" data-testid="file-name" title="Open file panel"></button>
         <span id="workspace-label" class="workspace-label hidden" data-testid="workspace-label"></span>
       </div>
@@ -31,7 +31,7 @@
         <button type="button" id="btn-expand-all">Expand all</button>
         <button type="button" id="btn-collapse-all">Collapse all</button>
         <button type="button" id="btn-fit" title="Fit to view (F1)">Fit</button>
-        <button type="button" id="btn-install" class="install-btn hidden" title="Install as standalone app">
+        <button type="button" id="btn-install" class="install-btn hidden" title="Install as standalone app" style="display:none">
           Install app
         </button>
       </div>
@@ -63,7 +63,7 @@
       </div>
       <ul id="file-list" class="file-list"></ul>
       <p id="folder-picker-hint" class="file-inline-hint hidden" data-testid="folder-picker-hint">
-        Open folder requires Chrome or Edge. Use <code>node server.mjs /path/to/file.md</code> in Safari.
+        Open folder requires Chrome or Edge (not supported in Safari).
       </p>
       <div id="file-unsaved-guard" class="file-inline-form hidden" data-testid="file-unsaved-guard">
         <p class="file-inline-hint">Unsaved changes on this file.</p>
