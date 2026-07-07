@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AuraMindmap</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 12px;
+        min-width: 220px;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+      }
+
+      button {
+        width: 100%;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        background: #5e35b1;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #4527a0;
+      }
+
+      h2 {
+        margin: 16px 0 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        padding: 4px 0;
+        color: #333;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .empty {
+        color: #888;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" id="open-editor">Open AuraMindmap</button>
+    <h2>Recent files</h2>
+    <ul id="recent-files"></ul>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
