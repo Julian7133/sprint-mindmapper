@@ -9,6 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "fast-xml-parser": "^5.2.5",
+    "jszip": "^3.10.1",
     "markmap-lib": "^0.18",
     "markmap-view": "^0.18"
   },
