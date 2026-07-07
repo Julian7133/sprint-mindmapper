@@ -1,0 +1,102 @@
+name: Release Extension
+
+# Packages the AuraMindmap Chrome extension into an upload-ready ZIP for the
+# Chrome Web Store. Triggered by a version tag (v*.*.*) or manually.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1.0)'
+        required: true
+        type: string
+
+# Cancel superseded runs for the same tag/ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  package:
+    name: Build & package extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # required to attach the ZIP to a GitHub Release
+    defaults:
+      run:
+        working-directory: extension
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=v${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build markmap bundle
+        run: npm run build
+
+      - name: Verify manifest version matches tag
+        run: |
+          TAG="${{ steps.version.outputs.name }}"
+          TAG_VERSION="${TAG#v}"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match manifest.json version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+
+      - name: Package extension ZIP
+        run: |
+          OUT="auramindmap-${{ steps.version.outputs.name }}.zip"
+          # Exclude dev-only files; ship only what the extension loads at runtime.
+          zip -r "../$OUT" . \
+            -x 'node_modules/*' \
+            -x 'tests/*' \
+            -x 'playwright.config.js' \
+            -x 'build.js' \
+            -x 'build-assets.mjs' \
+            -x 'package.json' \
+            -x 'package-lock.json' \
+            -x '*.map'
+          echo "Packaged ../$OUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: auramindmap-${{ steps.version.outputs.name }}
+          path: auramindmap-${{ steps.version.outputs.name }}.zip
+          retention-days: 30
+
+      - name: Attach ZIP to GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: auramindmap-${{ steps.version.outputs.name }}.zip
+          draft: true
+          generate_release_notes: true

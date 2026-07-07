@@ -123,3 +123,107 @@ jobs:
             editor/playwright-report/
             editor/test-results/
           retention-days: 7
+
+  extension-test:
+    name: Extension unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: extension
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `pretest` runs build-assets.mjs to embed markmap vendor JS/CSS before vitest.
+      - name: Run unit tests
+        run: npm test
+
+  extension-build:
+    name: Extension build (markmap bundle)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: extension
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build markmap bundle
+        run: npm run build
+
+      - name: Verify bundle output exists and is CDN-free
+        run: |
+          test -s editor/markmap-bundle.js
+          if grep -qE 'cdn\.jsdelivr\.net|unpkg\.com' editor/markmap-bundle.js; then
+            echo "::error::markmap bundle contains a CDN URL (CSP would block it)"
+            exit 1
+          fi
+
+  extension-e2e:
+    name: Extension Playwright e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: extension
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension assets
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # Extension E2E loads the unpacked extension via --load-extension; a headed
+      # Chromium is required (headless does not load MV3 extensions), so run under xvfb.
+      - name: Run extension Playwright tests
+        run: xvfb-run -a npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: extension-playwright-report-${{ github.run_number }}
+          path: |
+            extension/playwright-report/
+            extension/test-results/
+          retention-days: 7
