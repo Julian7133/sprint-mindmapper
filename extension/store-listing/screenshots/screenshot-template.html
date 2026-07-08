@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraMindmap — Screenshot Template</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      position: relative;
+    }
+
+    /* ── Chrome frame (top) ── */
+    .chrome-bar {
+      height: 38px;
+      background: #1e1e2e;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      border-bottom: 1px solid #2a2a3a;
+      gap: 8px;
+    }
+    .chrome-dots { display: flex; gap: 6px; }
+    .chrome-dots span {
+      width: 12px; height: 12px; border-radius: 50%; display: block;
+    }
+    .chrome-dots span:nth-child(1) { background: #ff5f57; }
+    .chrome-dots span:nth-child(2) { background: #ffbd2e; }
+    .chrome-dots span:nth-child(3) { background: #28c840; }
+    .chrome-url {
+      flex: 1;
+      background: #2a2a3a;
+      border-radius: 6px;
+      height: 26px;
+      margin-left: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    /* ── App shell ── */
+    .app-shell {
+      display: flex;
+      height: calc(800px - 38px);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      background: #161622;
+      border-right: 1px solid #2a2a3a;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c0c0e0;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-title .logo {
+      width: 22px; height: 22px; border-radius: 4px;
+      background: linear-gradient(135deg, #3949ab, #5e35b1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .file-list { list-style: none; flex: 1; }
+    .file-list li {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #a0a0c0;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-list li.active {
+      background: #2a2a4a;
+      color: #e0e0ff;
+    }
+    .file-list li .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .dot-green  { background: #28c840; }
+    .dot-blue   { background: #3949ab; }
+    .dot-orange { background: #ff9800; }
+    .dot-purple { background: #9c27b0; }
+
+    /* ── Canvas ── */
+    .canvas {
+      flex: 1;
+      background: #12121e;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, #1e1e2e 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+
+    .node {
+      position: absolute;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1;
+    }
+
+    .node-core {
+      left: 520px; top: 340px;
+      background: linear-gradient(135deg, #3949ab, #5e35b1);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 16px 28px;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(94, 53, 177, 0.4);
+    }
+
+    .node-sprint {
+      left: 240px; top: 180px;
+      background: #1e1e3a;
+      border: 2px solid #3949ab;
+      color: #c0c8ff;
+    }
+    .node-sprint .priority {
+      background: #3949ab;
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .node-epic {
+      right: 200px; top: 140px;
+      background: #1e1e3a;
+      border: 2px solid #5e35b1;
+      color: #d0b0ff;
+    }
+    .node-epic .priority {
+      background: #5e35b1;
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .node-story {
+      left: 160px; bottom: 180px;
+      background: #1e1e3a;
+      border: 2px solid #28c840;
+      color: #a0ffcc;
+    }
+    .node-story .priority {
+      background: #28c840;
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .node-task {
+      right: 140px; bottom: 200px;
+      background: #1e1e3a;
+      border: 2px solid #ff9800;
+      color: #ffd9a0;
+    }
+    .node-task .priority {
+      background: #ff9800;
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .node-bug {
+      left: 380px; top: 120px;
+      background: #1e1e3a;
+      border: 2px solid #ff5f57;
+      color: #ffb0a0;
+    }
+    .node-bug .priority {
+      background: #ff5f57;
+      color: #fff;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .connectors {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .connectors path {
+      fill: none;
+      stroke: #3a3a5a;
+      stroke-width: 2;
+      stroke-dasharray: 6 3;
+    }
+
+    .toolbar {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e2e;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 8px 12px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      z-index: 10;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .toolbar-btn {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      background: #2a2a3a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #a0a0c0;
+      cursor: default;
+    }
+    .toolbar-btn.active {
+      background: #3949ab;
+      color: #fff;
+    }
+    .toolbar-sep {
+      width: 1px; height: 20px;
+      background: #3a3a4a;
+      margin: 0 4px;
+    }
+
+    .watermark {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      font-size: 11px;
+      color: #4a4a5a;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chrome-bar">
+    <div class="chrome-dots"><span></span><span></span><span></span></div>
+    <div class="chrome-url">chrome-extension://xxx/editor/index.html</div>
+  </div>
+
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sidebar-title">
+        <div class="logo">A</div>
+        Files
+      </div>
+      <ul class="file-list">
+        <li class="active"><span class="dot dot-blue"></span> Sprint-14.md</li>
+        <li><span class="dot dot-green"></span> Sprint-13.md</li>
+        <li><span class="dot dot-orange"></span> Retro.md</li>
+        <li><span class="dot dot-purple"></span> Roadmap.md</li>
+        <li><span class="dot dot-green"></span> Epic-Discovery.md</li>
+      </ul>
+    </div>
+
+    <div class="canvas">
+      <svg class="connectors" width="1280" height="762">
+        <path d="M520,380 C440,380 350,320 280,240" />
+        <path d="M520,380 C600,380 700,320 780,200" />
+        <path d="M520,380 C440,440 320,520 240,580" />
+        <path d="M520,380 C620,440 750,520 840,560" />
+        <path d="M520,380 C480,300 420,200 380,160" />
+      </svg>
+
+      <div class="node node-core">Sprint 14</div>
+      <div class="node node-sprint"><span class="priority">P1</span> Planning</div>
+      <div class="node node-epic"><span class="priority">P2</span> Discovery</div>
+      <div class="node node-story"><span class="priority">P1</span> User auth</div>
+      <div class="node node-task"><span class="priority">P3</span> Setup pipeline</div>
+      <div class="node node-bug"><span class="priority">P0</span> Login crash</div>
+
+      <div class="toolbar">
+        <div class="toolbar-btn active">✎</div>
+        <div class="toolbar-btn">+</div>
+        <div class="toolbar-btn">⬇</div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-btn">1</div>
+        <div class="toolbar-btn">2</div>
+        <div class="toolbar-btn">3</div>
+        <div class="toolbar-btn">4</div>
+        <div class="toolbar-btn">5</div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-btn">⊞</div>
+        <div class="toolbar-btn">↻</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="watermark">AURAMINDMAP</div>
+
+</body>
+</html>
