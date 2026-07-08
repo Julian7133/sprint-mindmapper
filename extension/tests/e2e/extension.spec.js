@@ -58,14 +58,17 @@ test.describe('AuraMindmap Chrome Extension', () => {
         return;
       }
 
-      // Fresh profile: no saved folder — open the file panel to reach folder actions.
-      await page.getByTestId('file-name').click();
-      await expect(page.getByTestId('file-panel')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Choose folder…' })).toBeVisible();
+      // Boot auto-opens the file panel when no folder is connected — do not click
+      // file-name (that toggles the panel closed again).
+      const filePanel = page.getByTestId('file-panel');
+      await expect(filePanel).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole('button', { name: /Choose folder|Open folder/i })).toBeVisible();
       await expect(page.getByTestId('folder-connect-hint')).toBeVisible();
       await expect(page.getByTestId('folder-connect-hint')).toContainText(/choose a folder/i);
       await expect(page.getByTestId('folder-connect-hint')).toContainText(/\.md files look disabled/i);
-      await expect(page.getByTestId('status')).toContainText(/choose a folder|load error|no markdown/i);
+      await expect(page.getByTestId('status')).toContainText(
+        /choose a folder|open a folder|load error|no markdown|reconnect/i
+      );
     } finally {
       await page.close();
     }

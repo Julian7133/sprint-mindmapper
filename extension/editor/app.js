@@ -889,6 +889,7 @@ setupObserver();
 setupBus();
 
 function showWelcomeForDisconnectedFolder() {
+  fileNameEl.textContent = 'Files';
   updateFolderConnectUi();
   setStatus('choose a folder to start');
   filePanel.classList.remove('hidden');
@@ -912,10 +913,12 @@ async function boot() {
   } catch (err) {
     console.error(err);
     setStatus('load error', 'error');
+    showWelcomeForDisconnectedFolder();
   }
 }
 
 boot().catch((err) => {
   console.error(err);
   setStatus('load error', 'error');
+  showWelcomeForDisconnectedFolder();
 });
