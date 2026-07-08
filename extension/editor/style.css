@@ -177,6 +177,43 @@ body {
   color: #6b7280;
 }
 
+.folder-connect-hint {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.folder-connect-hint.hidden {
+  display: none;
+}
+
+.folder-connect-lead {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.folder-connect-detail {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #1d4ed8;
+}
+
+.file-panel.needs-folder #btn-open-folder {
+  background: #1e88e5;
+  color: #fff;
+  border-color: #1e88e5;
+  font-weight: 600;
+}
+
+.file-panel.needs-folder #btn-open-folder:hover {
+  background: #1976d2;
+}
+
 .file-inline-label {
   display: block;
   margin-bottom: 4px;
@@ -356,6 +393,10 @@ body {
 #map {
   height: calc(100vh - 57px);
   background: #fff;
+}
+
+#map.map-not-ready {
+  pointer-events: none;
 }
 
 /* MindElixir drag ghost must not block elementFromPoint drop targeting */

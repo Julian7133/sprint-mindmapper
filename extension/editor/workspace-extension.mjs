@@ -96,6 +96,10 @@ export function createWorkspace() {
       return true;
     },
 
+    isConnected() {
+      return Boolean(dirHandle);
+    },
+
     current() {
       return ws;
     },

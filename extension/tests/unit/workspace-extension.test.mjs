@@ -313,6 +313,7 @@ describe('createWorkspace', () => {
       const ws = createWorkspace();
       expect(ws.mode).toBe('folder');
       expect(ws.isFolderMode()).toBe(true);
+      expect(ws.isConnected()).toBe(false);
       expect(ws.supportsNativeFolder).toBe(true);
       expect(ws.fileQuery()).toBe('');
       expect(ws.current()).toBe(ws);

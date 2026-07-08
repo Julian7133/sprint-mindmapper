@@ -4,16 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1e88e5" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="AuraMindmap" />
-    <title>AuraMindmap</title>
+    <title>AuraMindmap — Side panel</title>
     <link rel="icon" href="../icons/icon-48.png" type="image/png" />
-    <link rel="apple-touch-icon" href="../icons/icon-128.png" />
     <link rel="stylesheet" href="./vendor/style.css" />
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body>
+  <body class="side-panel-mode">
     <header class="toolbar">
       <div class="toolbar-left">
         <h1>AuraMindmap</h1>
@@ -21,39 +17,16 @@
         <span id="workspace-label" class="workspace-label hidden" data-testid="workspace-label"></span>
       </div>
       <div class="toolbar-actions">
-        <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel (Ctrl/Cmd+Shift+M)">
-          Markers
-        </button>
-        <button type="button" id="btn-save" title="Save to markdown (Ctrl/Cmd+S)">
-          Save
-        </button>
-        <button type="button" id="btn-expand-all">Expand all</button>
-        <button type="button" id="btn-collapse-all">Collapse all</button>
-        <button type="button" id="btn-fit" title="Fit to view (F1)">Fit</button>
-        <button type="button" id="btn-install" class="install-btn hidden" title="Install as standalone app" style="display:none">
-          Install app
-        </button>
+        <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel">Markers</button>
+        <button type="button" id="btn-save" title="Save (Ctrl/Cmd+S)">Save</button>
+        <button type="button" id="btn-open-full-editor" data-testid="btn-open-full-editor">Open full editor</button>
       </div>
       <div class="toolbar-right">
-        <span id="hotkey-hint" class="hotkey-hint"></span>
-        <div class="legend" aria-label="Priority legend">
-          <span class="legend-item"><span class="marker-pri pri-1">1</span> Critical</span>
-          <span class="legend-item"><span class="marker-pri pri-2">2</span> High</span>
-          <span class="legend-item"><span class="marker-pri pri-3">3</span> Medium</span>
-          <span class="legend-item"><span class="marker-pri pri-4">4</span> Low</span>
-          <span class="legend-item"><span class="marker-pri pri-5">5</span> Lowest</span>
-        </div>
         <span id="status" class="status" data-testid="status" aria-live="polite">loading…</span>
       </div>
     </header>
 
-    <div id="focus-banner" class="focus-banner hidden" data-testid="focus-banner" role="status">
-      <span id="focus-banner-text"></span>
-      <button type="button" id="btn-exit-focus" class="focus-banner-exit">Exit focus (Shift+F6)</button>
-    </div>
-
-    <main id="map" class="map-not-ready" data-testid="map" tabindex="-1"></main>
-
+    <main id="map" data-testid="map" tabindex="-1"></main>
 
     <aside id="file-panel" class="file-panel hidden" data-testid="file-panel" aria-label="Workspace files">
       <div class="panel-header">
@@ -61,10 +34,6 @@
         <button type="button" id="btn-file-close" class="panel-close" aria-label="Close">×</button>
       </div>
       <ul id="file-list" class="file-list"></ul>
-      <div id="folder-connect-hint" class="folder-connect-hint hidden" data-testid="folder-connect-hint">
-        <p class="folder-connect-lead">Choose a folder</p>
-        <p class="folder-connect-detail">.md files look disabled in the picker — select the folder instead.</p>
-      </div>
       <p id="folder-picker-hint" class="file-inline-hint hidden" data-testid="folder-picker-hint">
         Open folder requires Chrome or Edge (not supported in Safari).
       </p>
@@ -83,11 +52,19 @@
           <button type="button" id="btn-cancel-new-file">Cancel</button>
         </div>
       </div>
+      <div id="drive-sync-section" class="drive-sync-section hidden" data-testid="drive-sync-section">
+        <p id="drive-sync-status" class="drive-sync-status" data-testid="drive-sync-status"></p>
+        <div class="inline-form-actions">
+          <button type="button" id="btn-sync-drive" data-testid="btn-sync-drive">Sync to Drive</button>
+          <button type="button" id="btn-drive-signout" class="drive-signout hidden">Sign out</button>
+        </div>
+      </div>
       <div class="panel-actions">
-        <button type="button" id="btn-open-folder">Choose folder…</button>
+        <button type="button" id="btn-open-folder">Open folder…</button>
         <button type="button" id="btn-new-file">New file</button>
         <button type="button" id="btn-import-file">Import…</button>
         <button type="button" id="btn-export">Export…</button>
+        <button type="button" id="btn-enable-drive" data-testid="btn-enable-drive">Enable Drive sync…</button>
       </div>
       <input type="file" id="import-input" accept=".opml,.mm,.xmind" hidden />
     </aside>
@@ -107,10 +84,7 @@
     <div id="reconnect-prompt" class="reconnect-prompt hidden" data-testid="reconnect-prompt">
       <div class="reconnect-dialog" role="dialog" aria-labelledby="reconnect-title">
         <h2 id="reconnect-title">Reconnect folder</h2>
-        <p>
-          Reconnect to <strong id="reconnect-folder-name">folder</strong> to continue editing your mindmaps.
-        </p>
-        <p class="reconnect-hint">Your browser needs permission to access this folder again.</p>
+        <p>Reconnect to <strong id="reconnect-folder-name">folder</strong> to continue editing.</p>
         <div class="inline-form-actions">
           <button type="button" id="btn-reconnect">Reconnect folder</button>
           <button type="button" id="btn-reconnect-dismiss">Open different folder</button>
@@ -137,21 +111,24 @@
     </div>
 
     <aside id="priority-filter" class="priority-filter hidden" aria-label="Priority filter">
-      <button
-        type="button"
-        id="btn-priority-filter"
-        class="priority-filter-btn"
-        data-testid="priority-filter-btn"
-        disabled
-      >
+      <button type="button" id="btn-priority-filter" class="priority-filter-btn" data-testid="priority-filter-btn" disabled>
         <span id="filter-badge" class="pri-badge"></span>
         <span id="filter-label">Priority</span>
       </button>
-      <p id="filter-hint" class="priority-filter-hint">
-        Select a task with a priority to filter.
-      </p>
+      <p id="filter-hint" class="priority-filter-hint">Select a task with a priority to filter.</p>
     </aside>
 
-    <script type="module" src="./app.js"></script>
+    <!-- Side panel stubs for app.js optional elements -->
+    <span id="hotkey-hint" class="hotkey-hint hidden"></span>
+    <div id="focus-banner" class="focus-banner hidden" data-testid="focus-banner" role="status">
+      <span id="focus-banner-text"></span>
+      <button type="button" id="btn-exit-focus" class="focus-banner-exit">Exit focus</button>
+    </div>
+    <button type="button" id="btn-expand-all" class="hidden" hidden></button>
+    <button type="button" id="btn-collapse-all" class="hidden" hidden></button>
+    <button type="button" id="btn-fit" class="hidden" hidden></button>
+    <button type="button" id="btn-install" class="hidden" hidden></button>
+
+    <script type="module" src="./side-panel.mjs"></script>
   </body>
 </html>
