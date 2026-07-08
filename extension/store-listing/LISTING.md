@@ -45,9 +45,10 @@ No `tabs`, `host_permissions`, or broad file access permissions are requested.
 
 ## Assets checklist
 
-- [ ] 1280×800 screenshot (editor with mind map) — see `screenshots/README.md`
+- [ ] 1280×800 screenshot (editor with mind map) — open `screenshots/screenshot-template.html` in Chrome and capture, or use a live editor session (see `screenshots/README.md`)
 - [ ] 440×280 small promo tile
 - [x] 16 / 48 / 128 / 256 px icons in `extension/icons/`
+- [x] 256 px icon in `manifest.json` icons block
 - [ ] Privacy policy URL (host `PRIVACY-POLICY.md` on Netlify/GitHub Pages)
 - [ ] Replace `REPLACE_WITH_OAUTH_CLIENT_ID` in `manifest.json` before release with Drive sync enabled
 
