@@ -1,8 +1,14 @@
 const openBtn = document.getElementById('open-editor');
+const sidePanelBtn = document.getElementById('open-side-panel');
 const recentList = document.getElementById('recent-files');
 
 openBtn.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'open-editor' });
+});
+
+sidePanelBtn.addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'open-side-panel' });
+  window.close();
 });
 
 async function loadRecentFiles() {

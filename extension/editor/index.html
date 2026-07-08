@@ -83,11 +83,19 @@
           <button type="button" id="btn-cancel-new-file">Cancel</button>
         </div>
       </div>
+      <div id="drive-sync-section" class="drive-sync-section hidden" data-testid="drive-sync-section">
+        <p id="drive-sync-status" class="drive-sync-status" data-testid="drive-sync-status"></p>
+        <div class="inline-form-actions">
+          <button type="button" id="btn-sync-drive" data-testid="btn-sync-drive">Sync to Drive</button>
+          <button type="button" id="btn-drive-signout" class="drive-signout hidden">Sign out</button>
+        </div>
+      </div>
       <div class="panel-actions">
         <button type="button" id="btn-open-folder">Choose folder…</button>
         <button type="button" id="btn-new-file">New file</button>
         <button type="button" id="btn-import-file">Import…</button>
         <button type="button" id="btn-export">Export…</button>
+        <button type="button" id="btn-enable-drive" data-testid="btn-enable-drive">Enable Drive sync…</button>
       </div>
       <input type="file" id="import-input" accept=".opml,.mm,.xmind" hidden />
     </aside>

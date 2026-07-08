@@ -997,3 +997,68 @@ body {
     display: none;
   }
 }
+
+.drive-sync-section {
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.drive-sync-status {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.drive-signout {
+  font-size: 12px;
+}
+
+body.side-panel-mode .toolbar {
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+body.side-panel-mode .toolbar-left h1 {
+  font-size: 14px;
+}
+
+body.side-panel-mode .legend,
+body.side-panel-mode .hotkey-hint,
+body.side-panel-mode #btn-expand-all,
+body.side-panel-mode #btn-collapse-all,
+body.side-panel-mode #btn-fit,
+body.side-panel-mode #btn-install {
+  display: none !important;
+}
+
+body.side-panel-mode .file-panel,
+body.side-panel-mode .export-panel {
+  left: 8px;
+  right: 8px;
+  width: auto;
+  top: 56px;
+  max-height: calc(100vh - 72px);
+}
+
+body.side-panel-mode #map {
+  height: calc(100vh - 56px);
+}
+
+body.side-panel-mode #btn-open-full-editor {
+  border: 1px solid #5e35b1;
+  background: #fff;
+  color: #5e35b1;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+body.side-panel-mode #btn-open-full-editor:hover {
+  background: #ede7f6;
+}

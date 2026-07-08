@@ -40,6 +40,77 @@ const btnReconnectDismiss = document.getElementById('btn-reconnect-dismiss');
 const btnOpenFolder = document.getElementById('btn-open-folder');
 const folderPickerHint = document.getElementById('folder-picker-hint');
 const folderConnectHint = document.getElementById('folder-connect-hint');
+const driveSyncSection = document.getElementById('drive-sync-section');
+const driveSyncStatus = document.getElementById('drive-sync-status');
+const btnEnableDrive = document.getElementById('btn-enable-drive');
+const btnSyncDrive = document.getElementById('btn-sync-drive');
+const btnDriveSignout = document.getElementById('btn-drive-signout');
+
+async function trackRecentFile(relPath) {
+  if (!globalThis.chrome?.storage?.local || !relPath) return;
+  const { recentFiles = [] } = await chrome.storage.local.get('recentFiles');
+  const next = [relPath, ...recentFiles.filter((f) => f !== relPath)].slice(0, 8);
+  await chrome.storage.local.set({ recentFiles: next });
+}
+
+async function updateDriveSyncUi() {
+  if (!btnEnableDrive || !globalThis.chrome?.permissions) return;
+
+  const hasPerm = await chrome.permissions.contains({ permissions: ['identity'] });
+  if (!hasPerm) {
+    driveSyncSection?.classList.add('hidden');
+    btnEnableDrive.classList.remove('hidden');
+    return;
+  }
+
+  btnEnableDrive.classList.add('hidden');
+  driveSyncSection?.classList.remove('hidden');
+
+  const { loadSyncMeta } = await import('./drive-sync.mjs');
+  const meta = await loadSyncMeta();
+  if (driveSyncStatus) {
+    driveSyncStatus.textContent = meta.enabled
+      ? `Drive folder: ${meta.folderId ? 'AuraMindmap' : 'not synced yet'}`
+      : 'Drive sync enabled — save a file, then sync.';
+  }
+  btnDriveSignout?.classList.toggle('hidden', !meta.enabled);
+  btnSyncDrive.disabled = !activeFile || !ws.isConnected();
+}
+
+async function enableDriveSync() {
+  const { requestDrivePermission } = await import('./drive-sync.mjs');
+  const granted = await requestDrivePermission();
+  if (!granted) {
+    setStatus('Drive permission denied', 'error');
+    return;
+  }
+  await updateDriveSyncUi();
+  setStatus('Drive sync enabled');
+}
+
+async function syncActiveFileToDrive() {
+  if (!activeFile || !ws.isConnected()) return;
+  try {
+    setStatus('syncing to Drive…');
+    const data = mind.getData().nodeData;
+    const md = serializeMarkdown(frontmatter, data);
+    const { syncFileToDrive } = await import('./drive-sync.mjs');
+    await syncFileToDrive({ relPath: activeFile, content: md });
+    await updateDriveSyncUi();
+    setStatus('synced to Drive', 'saved');
+  } catch (err) {
+    console.error(err);
+    setStatus(err.message || 'Drive sync failed', 'error');
+  }
+}
+
+async function signOutDriveSync() {
+  const { signOutDrive } = await import('./drive-sync.mjs');
+  await signOutDrive();
+  await updateDriveSyncUi();
+  setStatus('signed out of Drive');
+}
+
 
 let frontmatter = '';
 let selectedId = null;
@@ -328,6 +399,8 @@ async function saveMarkdown() {
     const result = await ws.saveMarkdown(activeFile, md);
     dirty = false;
     setStatus('saved', 'saved');
+    await trackRecentFile(activeFile);
+    await updateDriveSyncUi();
     if (result.rendering) {
       pollRenderStatus();
     } else {
@@ -637,6 +710,8 @@ async function loadInitialData() {
   markerPicker.show();
   await refreshFileList();
   document.getElementById('map')?.classList.remove('map-not-ready');
+  await trackRecentFile(activeFile);
+  await updateDriveSyncUi();
   setStatus('ready');
 }
 
@@ -859,6 +934,9 @@ document.getElementById('btn-export-svg').addEventListener('click', () => export
 document.getElementById('btn-open-markmap').addEventListener('click', openMarkmapHtml);
 filterBtn.addEventListener('click', togglePriorityFilter);
 btnMarkers.addEventListener('click', () => markerPicker.toggle());
+btnEnableDrive?.addEventListener('click', () => enableDriveSync().catch(console.error));
+btnSyncDrive?.addEventListener('click', () => syncActiveFileToDrive().catch(console.error));
+btnDriveSignout?.addEventListener('click', () => signOutDriveSync().catch(console.error));
 
 let deferredInstall = null;
 const installBtn = document.getElementById('btn-install');
@@ -882,8 +960,10 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-document.getElementById('hotkey-hint').textContent =
-  `${PRIORITY_HOTKEY_HINT} · F6 focus · Cmd+Shift+M markers`;
+const hotkeyHintEl = document.getElementById('hotkey-hint');
+if (hotkeyHintEl) {
+  hotkeyHintEl.textContent = `${PRIORITY_HOTKEY_HINT} · F6 focus · Cmd+Shift+M markers`;
+}
 
 setupObserver();
 setupBus();
@@ -906,6 +986,7 @@ async function boot() {
   }
   if (!ws.isConnected()) {
     showWelcomeForDisconnectedFolder();
+    await updateDriveSyncUi();
     return;
   }
   try {
