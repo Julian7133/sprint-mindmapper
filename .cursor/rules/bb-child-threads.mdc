@@ -1,0 +1,72 @@
+---
+description: Spawn and retry bb child threads with correct provider/model slugs
+alwaysApply: true
+---
+
+# BB child thread orchestration
+
+Before spawning or retrying bb child threads, **discover exact model slugs** — never pass display names.
+
+## Preflight (required)
+
+```bash
+bb status --json
+bb provider list
+bb provider models acp-opencode | rg -i "qwen|mlx|omlx"
+bb provider models acp-cursor
+```
+
+## Model slugs (this project)
+
+| Use case | Provider | Model slug |
+|----------|----------|------------|
+| Small/scoped tasks | `acp-opencode` | `omlx/Qwen3.6-35B-A3B-UD-MLX-3bit` |
+| Larger tasks (if needed) | `acp-cursor` | `composer-2.5` |
+
+**Wrong:** `--model "Qwen3.6-35B-A3B 3-bit UD-MLX"` (display name → thread error)
+**Right:** `--model omlx/Qwen3.6-35B-A3B-UD-MLX-3bit`
+
+## Spawn pattern
+
+```bash
+bb thread spawn \
+  --parent-self \
+  --project proj_qj64jbvqgf \
+  --provider acp-opencode \
+  --model omlx/Qwen3.6-35B-A3B-UD-MLX-3bit \
+  --title "Short task title" \
+  --prompt "Scoped prompt with paths and acceptance criteria."
+```
+
+For bigger tasks, swap provider/model:
+
+```bash
+--provider acp-cursor --model composer-2.5
+```
+
+## Retry failed threads
+
+1. Inspect: `bb thread log <id> --format json --limit 30` — confirm root cause:
+   - Bad model slug: `execution.model` shows display name instead of slug
+   - Context overflow on `tell`: `Prompt too long … exceeds max context window`
+2. **Prefer fresh spawn** over `bb thread tell` when the failed thread has bloated history or hit provider/context errors.
+3. If retrying in-place, pass explicit model slug:
+
+```bash
+bb thread tell <id> "Continue: …" --model omlx/Qwen3.6-35B-A3B-UD-MLX-3bit
+```
+
+4. Wait: `bb thread wait <id> --status idle --timeout 600`
+5. Review: `bb thread output <id>`
+
+If opencode hits context limits on a larger task, escalate:
+
+```bash
+bb thread spawn ... --provider acp-cursor --model composer-2.5
+```
+
+## Parent responsibilities
+
+- Scope prompts narrowly (one task, explicit file paths, out-of-scope list)
+- Wait for child completion before merging
+- If child fails, fix model slug and retry — do not silently redo work in the parent unless the child is unrecoverable

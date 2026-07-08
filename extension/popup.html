@@ -22,6 +22,17 @@
         color: #fff;
         font: inherit;
         cursor: pointer;
+        margin-bottom: 8px;
+      }
+
+      #open-side-panel {
+        background: #fff;
+        color: #5e35b1;
+        border: 1px solid #5e35b1;
+      }
+
+      #open-side-panel:hover {
+        background: #ede7f6;
       }
 
       button:hover {
@@ -59,6 +70,7 @@
   </head>
   <body>
     <button type="button" id="open-editor">Open AuraMindmap</button>
+    <button type="button" id="open-side-panel">Open side panel</button>
     <h2>Recent files</h2>
     <ul id="recent-files"></ul>
     <script type="module" src="popup.js"></script>

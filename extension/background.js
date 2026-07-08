@@ -43,6 +43,14 @@ async function openEditorWindow() {
   await setStoredWindowId(win.id);
 }
 
+async function openSidePanel() {
+  const win = await chrome.windows.getLastFocused({ populate: false });
+  if (!win?.id) {
+    throw new Error('No focused browser window for side panel');
+  }
+  await chrome.sidePanel.open({ windowId: win.id });
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
 });
@@ -60,6 +68,12 @@ chrome.commands.onCommand.addListener((command) => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'open-editor') {
     void openEditorWindow().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (message?.type === 'open-side-panel') {
+    void openSidePanel()
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }));
     return true;
   }
   return false;

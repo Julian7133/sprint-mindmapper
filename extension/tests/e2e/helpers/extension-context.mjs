@@ -40,6 +40,11 @@ export function editorPageUrl(extensionId) {
 }
 
 /** @param {string} extensionId */
+export function sidePanelPageUrl(extensionId) {
+  return `chrome-extension://${extensionId}/editor/side-panel.html`;
+}
+
+/** @param {string} extensionId */
 export function popupPageUrl(extensionId) {
   return `chrome-extension://${extensionId}/popup.html`;
 }
