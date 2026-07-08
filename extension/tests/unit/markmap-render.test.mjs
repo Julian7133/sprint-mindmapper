@@ -67,4 +67,11 @@ markmap:
     const html = await renderMarkmapHtml(md);
     expect(html).not.toMatch(/eval\s*\(/);
   });
+
+  it('uses deriveOptions from window.markmap, not Markmap.deriveOptions', async () => {
+    const html = await renderMarkmapHtml('# Root\n## Child');
+    expect(html).toContain('const { Markmap, deriveOptions } = window.markmap;');
+    expect(html).toContain("deriveOptions(");
+    expect(html).not.toContain('Markmap.deriveOptions');
+  });
 });

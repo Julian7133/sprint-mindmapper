@@ -167,8 +167,8 @@ ${styleBlock}
   <svg id="mindmap" style="width:100%;height:100vh"></svg>
   ${scriptBlocks}
   <script>
-    const { Markmap, loadCSS, loadJS } = window.markmap;
-    Markmap.create('#mindmap', Markmap.deriveOptions(${JSON.stringify(jsonOptions)}), ${JSON.stringify(root)});
+    const { Markmap, deriveOptions } = window.markmap;
+    Markmap.create('#mindmap', deriveOptions(${JSON.stringify(jsonOptions)}), ${JSON.stringify(root)});
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.documentElement.classList.add('markmap-dark');
     }
