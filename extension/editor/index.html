@@ -12,7 +12,6 @@
     <link rel="apple-touch-icon" href="../icons/icon-128.png" />
     <link rel="stylesheet" href="./vendor/style.css" />
     <link rel="stylesheet" href="./style.css" />
-    <script src="./service-worker-register.js"></script>
   </head>
   <body>
     <header class="toolbar">
@@ -53,7 +52,7 @@
       <button type="button" id="btn-exit-focus" class="focus-banner-exit">Exit focus (Shift+F6)</button>
     </div>
 
-    <main id="map" data-testid="map" tabindex="-1"></main>
+    <main id="map" class="map-not-ready" data-testid="map" tabindex="-1"></main>
 
 
     <aside id="file-panel" class="file-panel hidden" data-testid="file-panel" aria-label="Workspace files">

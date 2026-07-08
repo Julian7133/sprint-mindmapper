@@ -62,7 +62,7 @@ test.describe('AuraMindmap Chrome Extension', () => {
       await page.getByTestId('file-name').click();
       await expect(page.getByTestId('file-panel')).toBeVisible();
       await expect(page.getByRole('button', { name: 'Open folder…' })).toBeVisible();
-      await expect(page.getByTestId('status')).toContainText(/load error|no markdown/i);
+      await expect(page.getByTestId('status')).toContainText(/open a folder|load error|no markdown/i);
     } finally {
       await page.close();
     }

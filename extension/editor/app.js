@@ -412,6 +412,11 @@ function pathBasename(rel) {
 }
 
 async function refreshFileList() {
+  if (!ws.isConnected()) {
+    workspaceFiles = [];
+    renderFileList();
+    return;
+  }
   workspaceFiles = await ws.listFiles();
   if (!activeFile) {
     const info = await ws.getInfo();
@@ -619,6 +624,7 @@ async function loadInitialData() {
   decorate();
   markerPicker.show();
   await refreshFileList();
+  document.getElementById('map')?.classList.remove('map-not-ready');
   setStatus('ready');
 }
 
@@ -792,7 +798,8 @@ btnReconnectDismiss.addEventListener('click', () => {
     .then(() => {
       hideReconnectPrompt();
       updateWorkspaceLabel();
-      return loadInitialData();
+      setStatus('open a folder to start');
+      filePanel.classList.remove('hidden');
     })
     .catch(console.error);
 });
@@ -855,10 +862,6 @@ installBtn.addEventListener('click', async () => {
   installBtn.classList.add('hidden');
 });
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js').catch(console.error);
-}
-
 window.addEventListener('beforeunload', (e) => {
   if (dirty) {
     e.preventDefault();
@@ -872,11 +875,21 @@ document.getElementById('hotkey-hint').textContent =
 setupObserver();
 setupBus();
 
+function showWelcomeForDisconnectedFolder() {
+  setStatus('open a folder to start');
+  filePanel.classList.remove('hidden');
+}
+
 async function boot() {
   updateFolderPickerUi();
   const initResult = await ws.init();
   if (initResult.awaitingReconnect) {
     showReconnectPrompt(initResult.folderLabel);
+    setStatus('reconnect folder to continue');
+    return;
+  }
+  if (!ws.isConnected()) {
+    showWelcomeForDisconnectedFolder();
     return;
   }
   try {
