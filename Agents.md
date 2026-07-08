@@ -183,6 +183,8 @@ extension/
 - **Lazy-import heavy deps.** `workspace-extension.mjs` imports `import-formats.mjs` (which pulls `fast-xml-parser` + `jszip`) lazily inside `importBinary`, so a missing/broken dep doesn't crash module load at startup.
 - **`import-formats.mjs` needs `fast-xml-parser` + `jszip`** in `extension/package.json` dependencies — not just devDeps.
 - **Script/asset paths must be relative** (`./app.js`, `./vendor/style.css`), never root-absolute (`/app.js`) — the extension root ≠ `editor/`.
+- **Render via the esbuild bundle at runtime, never the source.** `workspace-extension.mjs` dynamic-imports `./markmap-bundle.js` (markmap-lib/-view inlined, browser-resolvable). It must NOT import `./markmap-render.mjs` — that source has bare `markmap-*` imports which don't resolve in an extension page, silently degrading rendering to a `<pre>` dump. Node unit tests won't catch this (Node resolves node_modules). The service worker precaches the bundle (not the source); `pretest` runs the full build so the bundle exists for tests; the workspace unit test mocks the *bundle* path to guard the import.
+- **CSP "no CDN" checks go on the rendered OUTPUT, not the bundle source** — markmap-lib's bundle contains dead `jsdelivr`/`unpkg` provider templates that are never invoked.
 - `pollRenderStatus()` always returns `{ status: 'idle' }`
 
 ---
