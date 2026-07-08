@@ -61,8 +61,11 @@ test.describe('AuraMindmap Chrome Extension', () => {
       // Fresh profile: no saved folder — open the file panel to reach folder actions.
       await page.getByTestId('file-name').click();
       await expect(page.getByTestId('file-panel')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Open folder…' })).toBeVisible();
-      await expect(page.getByTestId('status')).toContainText(/open a folder|load error|no markdown/i);
+      await expect(page.getByRole('button', { name: 'Choose folder…' })).toBeVisible();
+      await expect(page.getByTestId('folder-connect-hint')).toBeVisible();
+      await expect(page.getByTestId('folder-connect-hint')).toContainText(/choose a folder/i);
+      await expect(page.getByTestId('folder-connect-hint')).toContainText(/\.md files look disabled/i);
+      await expect(page.getByTestId('status')).toContainText(/choose a folder|load error|no markdown/i);
     } finally {
       await page.close();
     }

@@ -61,6 +61,10 @@
         <button type="button" id="btn-file-close" class="panel-close" aria-label="Close">×</button>
       </div>
       <ul id="file-list" class="file-list"></ul>
+      <div id="folder-connect-hint" class="folder-connect-hint hidden" data-testid="folder-connect-hint">
+        <p class="folder-connect-lead">Choose a folder</p>
+        <p class="folder-connect-detail">.md files look disabled in the picker — select the folder instead.</p>
+      </div>
       <p id="folder-picker-hint" class="file-inline-hint hidden" data-testid="folder-picker-hint">
         Open folder requires Chrome or Edge (not supported in Safari).
       </p>
@@ -80,7 +84,7 @@
         </div>
       </div>
       <div class="panel-actions">
-        <button type="button" id="btn-open-folder">Open folder…</button>
+        <button type="button" id="btn-open-folder">Choose folder…</button>
         <button type="button" id="btn-new-file">New file</button>
         <button type="button" id="btn-import-file">Import…</button>
         <button type="button" id="btn-export">Export…</button>

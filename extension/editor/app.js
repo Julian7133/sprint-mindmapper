@@ -39,6 +39,7 @@ const btnReconnect = document.getElementById('btn-reconnect');
 const btnReconnectDismiss = document.getElementById('btn-reconnect-dismiss');
 const btnOpenFolder = document.getElementById('btn-open-folder');
 const folderPickerHint = document.getElementById('folder-picker-hint');
+const folderConnectHint = document.getElementById('folder-connect-hint');
 
 let frontmatter = '';
 let selectedId = null;
@@ -117,6 +118,16 @@ function updateWorkspaceLabel() {
 function updateFolderPickerUi() {
   btnOpenFolder.disabled = !ws.supportsNativeFolder;
   folderPickerHint.classList.toggle('hidden', ws.supportsNativeFolder);
+}
+
+function updateFolderConnectUi() {
+  const connected = ws.isConnected();
+  filePanel.classList.toggle('needs-folder', !connected);
+  folderConnectHint.classList.toggle('hidden', connected);
+  btnOpenFolder.textContent = connected ? 'Open folder…' : 'Choose folder…';
+  btnOpenFolder.title = connected
+    ? 'Switch to a different folder of .md mindmaps'
+    : 'Pick the folder that contains your .md files — not a single file';
 }
 
 function updateFocusBanner() {
@@ -544,14 +555,15 @@ async function importFile(file) {
 async function openFolderPicker() {
   if (!ws.supportsNativeFolder) return;
   try {
-    setStatus('opening folder…');
+    setStatus('choose a folder in the picker — not a .md file');
     await ws.openFolderPicker();
     hideReconnectPrompt();
     updateWorkspaceLabel();
+    updateFolderConnectUi();
     await loadInitialData();
   } catch (err) {
     if (err.name === 'AbortError') {
-      setStatus('ready');
+      setStatus(ws.isConnected() ? 'ready' : 'choose a folder to start');
       return;
     }
     console.error(err);
@@ -786,6 +798,7 @@ btnReconnect.addEventListener('click', () => {
     .then(() => {
       hideReconnectPrompt();
       updateWorkspaceLabel();
+      updateFolderConnectUi();
       return loadInitialData();
     })
     .catch((err) => {
@@ -798,8 +811,8 @@ btnReconnectDismiss.addEventListener('click', () => {
     .then(() => {
       hideReconnectPrompt();
       updateWorkspaceLabel();
-      setStatus('open a folder to start');
-      filePanel.classList.remove('hidden');
+      updateFolderConnectUi();
+      showWelcomeForDisconnectedFolder();
     })
     .catch(console.error);
 });
@@ -876,12 +889,14 @@ setupObserver();
 setupBus();
 
 function showWelcomeForDisconnectedFolder() {
-  setStatus('open a folder to start');
+  updateFolderConnectUi();
+  setStatus('choose a folder to start');
   filePanel.classList.remove('hidden');
 }
 
 async function boot() {
   updateFolderPickerUi();
+  updateFolderConnectUi();
   const initResult = await ws.init();
   if (initResult.awaitingReconnect) {
     showReconnectPrompt(initResult.folderLabel);
