@@ -4,9 +4,12 @@ const SHELL_PATHS = [
   'editor/index.html',
   'editor/app.js',
   'editor/style.css',
+  'editor/workspace.mjs',
   'editor/workspace-extension.mjs',
   'editor/workspace-storage.mjs',
-  'editor/markmap-render.mjs',
+  // markmap-bundle.js is the browser-resolvable esbuild output (markmap-lib/-view
+  // inlined). The source markmap-render.mjs is a build input only — not shipped/cached.
+  'editor/markmap-bundle.js',
   'editor/markmap-convert.mjs',
   'editor/markers.mjs',
   'editor/marker-picker.mjs',

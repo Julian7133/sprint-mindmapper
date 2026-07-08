@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-vi.mock('../../editor/markmap-render.mjs', () => ({
+// workspace-extension imports the esbuild bundle at runtime (browser-resolvable),
+// so the mock must target the bundle, not the bare-import source module.
+vi.mock('../../editor/markmap-bundle.js', () => ({
   renderMarkmapHtml: vi.fn(async (md) => `<html><body>MOCK:${md}</body></html>`),
 }));
 
-import { renderMarkmapHtml } from '../../editor/markmap-render.mjs';
+import { renderMarkmapHtml } from '../../editor/markmap-bundle.js';
 import { createWorkspace } from '../../editor/workspace-extension.mjs';
 import {
   saveFolderWorkspace,

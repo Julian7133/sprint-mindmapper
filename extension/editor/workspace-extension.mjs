@@ -53,7 +53,11 @@ let renderMarkmapHtmlImpl = null;
 async function renderMarkmapHtml(md) {
   if (!renderMarkmapHtmlImpl) {
     try {
-      const mod = await import('./markmap-render.mjs');
+      // Import the esbuild bundle (markmap-lib/-view inlined, browser-resolvable).
+      // The source module markmap-render.mjs has bare `markmap-*` imports that do
+      // NOT resolve in an extension page (no node_modules, MV3 CSP blocks import
+      // maps), so it must never be imported at runtime — only the bundle is.
+      const mod = await import('./markmap-bundle.js');
       renderMarkmapHtmlImpl = mod.renderMarkmapHtml;
     } catch {
       renderMarkmapHtmlImpl = async (markdown) =>
