@@ -1,3 +1,24 @@
-sprint-tasks.md.editor-draft
+# OS
 .DS_Store
+**/.DS_Store
+
+# Dependencies
+node_modules/
+
+# Editor drafts
+*.editor-draft
+sprint-tasks.md.editor-draft
+
+# Test / CI artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cursor
 .cursor/.DS_Store
