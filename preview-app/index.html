@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AuraMindmap Preview</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-start">
+        <span class="app-mark" aria-hidden="true">◎</span>
+        <h1 id="doc-title" class="doc-title">AuraMindmap</h1>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" id="download-html-btn" class="btn btn-secondary" disabled>
+          Download HTML
+        </button>
+        <button type="button" id="download-svg-btn" class="btn btn-secondary" disabled>
+          Download SVG
+        </button>
+        <button type="button" id="edit-btn" class="btn btn-primary" disabled>
+          Edit in AuraMindmap
+        </button>
+      </div>
+    </header>
+
+    <p id="status" class="status" role="status" hidden></p>
+
+    <main class="preview-shell">
+      <iframe
+        id="preview"
+        title="Mind map preview"
+        sandbox="allow-scripts"
+      ></iframe>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
