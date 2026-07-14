@@ -1,0 +1,20 @@
+{
+  "name": "auramindmap-preview-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "pretest": "node build.js",
+    "test": "vitest run tests/unit"
+  },
+  "dependencies": {
+    "markmap-common": "^0.18",
+    "markmap-lib": "^0.18",
+    "markmap-view": "^0.18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "vitest": "^3.2.7"
+  }
+}
