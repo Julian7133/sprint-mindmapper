@@ -269,7 +269,12 @@ export function buildPickerButton(section, level, kind) {
   btn.className = 'marker-pick-btn';
   btn.dataset.section = section.key;
   btn.dataset.level = String(level);
-  btn.title = `${section.label} ${level}`;
+  if (section.key === 'priority' && level >= 1 && level <= 3) {
+    const tooltipTexts = { 1: 'Cmd +1', 2: 'Cmd+2', 3: 'Cmd+3' };
+    btn.title = tooltipTexts[level];
+  } else {
+    btn.title = `${section.label} ${level}`;
+  }
 
   if (kind === 'number') {
     btn.classList.add(`pri-${level}`);

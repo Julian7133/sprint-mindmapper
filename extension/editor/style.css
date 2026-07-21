@@ -350,26 +350,6 @@ body {
   flex-wrap: wrap;
 }
 
-.hotkey-hint {
-  font-size: 12px;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.legend {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: #4b5563;
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .status {
   font-size: 12px;
   padding: 4px 10px;
@@ -992,11 +972,6 @@ body {
   cursor: pointer;
 }
 
-@media (max-width: 900px) {
-  .legend {
-    display: none;
-  }
-}
 
 .drive-sync-section {
   margin: 10px 0;
@@ -1026,8 +1001,6 @@ body.side-panel-mode .toolbar-left h1 {
   font-size: 14px;
 }
 
-body.side-panel-mode .legend,
-body.side-panel-mode .hotkey-hint,
 body.side-panel-mode #btn-expand-all,
 body.side-panel-mode #btn-collapse-all,
 body.side-panel-mode #btn-fit,
