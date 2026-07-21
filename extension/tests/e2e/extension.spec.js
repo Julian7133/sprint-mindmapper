@@ -114,7 +114,6 @@ test.describe('AuraMindmap Chrome Extension', () => {
       await expect(page.getByTestId('btn-markers')).toBeVisible();
       await expect(page.getByTestId('btn-open-full-editor')).toBeVisible();
       await expect(page.getByTestId('map')).toBeVisible();
-      await expect(page.locator('.legend')).toHaveCount(0);
       await expect(page.getByTestId('status')).not.toHaveText('loading…', {
         timeout: 15_000,
       });

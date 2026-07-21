@@ -5,7 +5,6 @@ import { initMarkerPicker } from './marker-picker.mjs';
 import {
   parsePriorityHotkey,
   applyPriorityToNode,
-  PRIORITY_HOTKEY_HINT,
 } from './priority-hotkeys.mjs';
 import { handleTypeToEdit } from './type-to-edit.mjs';
 import { handlePasteNodes, initPasteChoiceDialog } from './paste-nodes.mjs';
@@ -960,10 +959,6 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-const hotkeyHintEl = document.getElementById('hotkey-hint');
-if (hotkeyHintEl) {
-  hotkeyHintEl.textContent = `${PRIORITY_HOTKEY_HINT} · F6 focus · Cmd+Shift+M markers`;
-}
 
 setupObserver();
 setupBus();

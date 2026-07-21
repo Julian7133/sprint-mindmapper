@@ -1,8 +1,5 @@
 /** Priority input — Cmd/Ctrl+digit 1–7; Cmd/Ctrl+Shift+0 to clear. */
 
-export const PRIORITY_HOTKEY_HINT =
-  'Cmd+1…7 priority · Cmd+Shift+0 clear · Markers panel for task/flag/star';
-
 const CODE_TO_PRIORITY = {
   Digit1: 1,
   Digit2: 2,
