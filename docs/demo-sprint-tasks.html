@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<title>Markmap</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+html {
+  font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+#mindmap {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+.markmap-dark {
+  background: #27272a;
+  color: white;
+}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/style.css">
+</head>
+<body>
+<svg id="mindmap"></svg>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script><script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18.12/dist/browser/index.js"></script><script src="https://cdn.jsdelivr.net/npm/markmap-toolbar@0.18.12/dist/index.js"></script><script>((r) => {
+          setTimeout(r);
+        })(() => {
+  const { markmap, mm } = window;
+  const toolbar = new markmap.Toolbar();
+  toolbar.attach(mm);
+  const el = toolbar.render();
+  el.setAttribute("style", "position:absolute;bottom:20px;right:20px");
+  document.body.append(el);
+})</script><script>((getMarkmap, getOptions, root2, jsonOptions) => {
+              const markmap = getMarkmap();
+              window.mm = markmap.Markmap.create(
+                "svg#mindmap",
+                (getOptions || markmap.deriveOptions)(jsonOptions),
+                root2
+              );
+              if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                document.documentElement.classList.add("markmap-dark");
+              }
+            })(() => window.markmap,null,{"content":"Demo Sprint","children":[{"content":"Backend","children":[{"content":"<span style=\"background:#e53935;color:#fff;border-radius:4px;padding:0 6px;\">1</span> Set up CI pipeline","children":[{"content":"Run lint + unit tests on every push","children":[],"payload":{"tag":"li","lines":"11,12"}},{"content":"Cache dependencies between runs","children":[],"payload":{"tag":"li","lines":"12,13"}}],"payload":{"tag":"h3","lines":"10,11"}},{"content":"<span style=\"background:#fb8c00;color:#fff;border-radius:4px;padding:0 6px;\">2</span> Add authentication middleware","children":[{"content":"JWT-based session tokens","children":[],"payload":{"tag":"li","lines":"14,15"}},{"content":"Refresh token rotation","children":[],"payload":{"tag":"li","lines":"15,16"}}],"payload":{"tag":"h3","lines":"13,14"}},{"content":"<span style=\"background:#fdd835;color:#333;border-radius:4px;padding:0 6px;\">3</span> Migrate database schema","children":[{"content":"Add indexes for search queries","children":[],"payload":{"tag":"li","lines":"17,18"}},{"content":"Backfill existing records","children":[],"payload":{"tag":"li","lines":"18,20"}}],"payload":{"tag":"h3","lines":"16,17"}}],"payload":{"tag":"h2","lines":"9,10"}},{"content":"Frontend","children":[{"content":"<span style=\"background:#e53935;color:#fff;border-radius:4px;padding:0 6px;\">1</span> Design login flow","children":[{"content":"Wireframes for desktop + mobile","children":[],"payload":{"tag":"li","lines":"22,23"}},{"content":"Error state handling","children":[],"payload":{"tag":"li","lines":"23,24"}}],"payload":{"tag":"h3","lines":"21,22"}},{"content":"<span style=\"background:#43a047;color:#fff;border-radius:4px;padding:0 6px;\">4</span> Build settings page","children":[{"content":"Theme toggle","children":[],"payload":{"tag":"li","lines":"25,26"}},{"content":"Notification preferences","children":[],"payload":{"tag":"li","lines":"26,27"}}],"payload":{"tag":"h3","lines":"24,25"}},{"content":"<span style=\"background:#1e88e5;color:#fff;border-radius:4px;padding:0 6px;\">5</span> Polish onboarding tour","children":[{"content":"First-run tooltips","children":[],"payload":{"tag":"li","lines":"28,29"}},{"content":"Skip/replay controls","children":[],"payload":{"tag":"li","lines":"29,31"}}],"payload":{"tag":"h3","lines":"27,28"}}],"payload":{"tag":"h2","lines":"20,21"}},{"content":"QA","children":[{"content":"<span style=\"background:#fb8c00;color:#fff;border-radius:4px;padding:0 6px;\">2</span> Write end-to-end test suite","children":[{"content":"Cover critical user journeys","children":[],"payload":{"tag":"li","lines":"33,34"}},{"content":"Run against staging nightly","children":[],"payload":{"tag":"li","lines":"34,35"}}],"payload":{"tag":"h3","lines":"32,33"}},{"content":"<span style=\"background:#fdd835;color:#333;border-radius:4px;padding:0 6px;\">3</span> Set up bug triage board","children":[{"content":"Weekly grooming","children":[],"payload":{"tag":"li","lines":"36,37"}},{"content":"Severity labels","children":[],"payload":{"tag":"li","lines":"37,39"}}],"payload":{"tag":"h3","lines":"35,36"}}],"payload":{"tag":"h2","lines":"31,32"}},{"content":"Release","children":[{"content":"<span style=\"background:#e53935;color:#fff;border-radius:4px;padding:0 6px;\">1</span> Prepare changelog","children":[{"content":"Summarize user-facing changes","children":[],"payload":{"tag":"li","lines":"41,42"}}],"payload":{"tag":"h3","lines":"40,41"}},{"content":"<span style=\"background:#43a047;color:#fff;border-radius:4px;padding:0 6px;\">4</span> Tag and publish release","children":[{"content":"Version bump","children":[],"payload":{"tag":"li","lines":"43,44"}},{"content":"Announce in team channel","children":[],"payload":{"tag":"li","lines":"44,45"}}],"payload":{"tag":"h3","lines":"42,43"}}],"payload":{"tag":"h2","lines":"39,40"}}],"payload":{"tag":"h1","lines":"7,8"}},{"colorFreezeLevel":2,"initialExpandLevel":4,"maxWidth":340})</script>
+</body>
+</html>

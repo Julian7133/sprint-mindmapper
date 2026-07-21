@@ -1,24 +1,29 @@
 # Sprint Mindmap
 
-Task mindmap for sprint planning. One markdown file drives both a **canvas editor** (XMind-style) and a **markmap** view for sharing and git diffs.
+Task mindmap for sprint planning. One markdown file drives both a **canvas editor** (XMind-style, shipped as the **AuraMindmap Chrome extension**) and a **markmap** view for sharing and git diffs.
 
-![Sprint tasks](sprint-tasks.png)
+![Demo sprint](docs/demo-sprint-tasks.png)
 
-## Quick start
+## Quick start — install the Chrome extension
 
-### Edit (canvas)
+AuraMindmap isn't published on the Chrome Web Store yet, so install it unpacked from source:
 
 ```bash
-cd editor
-npm ci          # import deps + test tooling (first time)
-node server.mjs
+cd extension
+npm ci          # install deps (first time)
+npm run build   # bundles the in-browser markmap renderer + assets
 ```
 
-Open [http://127.0.0.1:8731](http://127.0.0.1:8731). Edits autosave to a draft; **Save** (`Ctrl/Cmd+S`) writes `sprint-tasks.md` and refreshes the markmap HTML.
+Then in Chrome:
 
-**Tests** (from repo root): `npm run setup` once, then `npm run test:all`. E2e auto-installs Chromium on first run.
+1. Go to `chrome://extensions`
+2. Enable **Developer mode** (top-right toggle)
+3. Click **Load unpacked** and select the `extension/` folder
+4. Pin the AuraMindmap icon, then click it (or `Ctrl/Cmd+Shift+M`) to open the editor in its own window
 
-See [editor/README.md](editor/README.md) for shortcuts and details.
+The extension works fully offline — no Node server required. It saves `.md` mindmaps via the browser's File System Access API (pick a folder, edits autosave to a draft, **Save** writes the file and re-renders the markmap inline). Optional Google Drive sync is available via `chrome.identity` but off by default.
+
+See [extension/store-listing/SUBMISSION.md](extension/store-listing/SUBMISSION.md) for packaging/store-submission notes and [Agents.md](Agents.md) for architecture details.
 
 ### View (markmap)
 
@@ -34,7 +39,7 @@ Or regenerate from markdown:
 
 ## Source of truth
 
-`sprint-tasks.md` — heading-based outline with optional priority badges. German task names are plain text; no special encoding needed.
+`sprint-tasks.md` — heading-based outline with optional priority badges.
 
 ```markdown
 ## Branch name
@@ -54,22 +59,15 @@ Or regenerate from markdown:
 
 Set in the editor with **1…5** (clear: **0**) or the toolbar priority buttons. Saved badges render the same in markmap.
 
-### Install as app (macOS)
-
-```bash
-cd editor && node server.mjs
-```
-
-Then in Chrome: **Install app** in the toolbar. In Safari: **File → Add to Dock…**. See [editor/README.md](editor/README.md).
-
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `sprint-tasks.md` | Task data (committed) |
 | `sprint-tasks.html` | Read-only markmap (regenerated on Save) |
-| `sprint-tasks.png` | Screenshot from `render-markmap.sh` |
-| `editor/` | Canvas editor app |
+| `docs/demo-sprint-tasks.md` | Sample data used to generate the README screenshot |
+| `extension/` | Chrome extension (AuraMindmap) — primary editor |
+| `editor/` | Standalone canvas editor app (Node-server PWA, source for the extension — see [editor/README.md](editor/README.md) for contributor setup) |
 | `render-markmap.sh` | Markdown → HTML + PNG |
 
 ## markmap options (frontmatter)
@@ -85,56 +83,4 @@ markmap:
 
 ## OpenClaw agents
 
-Create mindmaps from any OpenClaw agent using the **create-mindmap** skill. Structure is modeled on [Agents365-ai/mermaid-skill](https://github.com/Agents365-ai/mermaid-skill); this skill targets heading-based markmap outlines (ebook summaries, sprint trees), not Mermaid flowcharts.
-
-### One-time setup (Mac or Hetzner)
-
-Clone this repo on each host:
-
-```bash
-git clone https://github.com/Julian7133/sprint-mindmapper.git ~/Projects/sprint-mindmapper
-```
-
-Install the skill (workspace path varies — pick one):
-
-```bash
-openclaw skills install ~/Projects/sprint-mindmapper/openclaw-skills/create-mindmap
-# or global: openclaw skills install --global ~/Projects/sprint-mindmapper/openclaw-skills/create-mindmap
-# or from git: openclaw skills install git:Julian7133/sprint-mindmapper@main --path openclaw-skills/create-mindmap
-```
-
-Set the repo path in `~/.openclaw/openclaw.json`:
-
-```json5
-{
-  skills: {
-    entries: {
-      "create-mindmap": {
-        enabled: true,
-        env: { SPRINT_MINDMAP_REPO: "/home/you/Projects/sprint-mindmapper" },
-      },
-    },
-  },
-}
-```
-
-Use your actual clone path (`~/Projects/sprint-mindmapper` on Mac, `/home/you/...` on Hetzner).
-
-### Invoke
-
-- Slash command: `/create-mindmap`
-- Or natural language: *"Create a mindmap from this ebook summary to `/path/out/`"*
-
-The agent writes a `.md` file (any absolute path), validates it, then runs `render-markmap.sh` to produce `.html` (+ `.png` on macOS when Chrome is available).
-
-### Ebook summary example
-
-Source: `/tmp/openclaw-summary.txt` → output dir: `/Users/me/mindmaps/openclaw/`
-
-The agent produces `/Users/me/mindmaps/openclaw/openclaw-ebook-summary.md`, validates with `editor/test-roundtrip.mjs`, renders to `.html`, and reports all output paths.
-
-### Sandbox note
-
-If the agent cannot write outside its workspace, save the mindmap inside the workspace or adjust OpenClaw sandbox settings.
-
-Skill files: [`openclaw-skills/create-mindmap/`](openclaw-skills/create-mindmap/)
+Generate mindmaps from any OpenClaw agent via the **create-mindmap** skill — setup, invocation, and examples are in [openclaw-skills/README.md](openclaw-skills/README.md).
