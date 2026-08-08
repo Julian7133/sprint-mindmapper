@@ -2,10 +2,34 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   parseLineContent,
+  buildPickerButton,
+  MARKER_SECTIONS,
   markerPrefixHTML,
   taskMarkerHTML,
 } from '../../markers.mjs';
 import { parseMarkdown, serializeMarkdown } from '../../markmap-convert.mjs';
+
+function withFakeDocument(fn) {
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    createElement: () => ({
+      classList: {
+        add() {},
+      },
+      dataset: {},
+    }),
+  };
+
+  try {
+    return fn();
+  } finally {
+    if (previousDocument === undefined) {
+      delete globalThis.document;
+    } else {
+      globalThis.document = previousDocument;
+    }
+  }
+}
 
 describe('markers', () => {
   it('parses legacy priority span', () => {
@@ -68,5 +92,24 @@ markmap:
     assert.equal(task.priority, 2);
     assert.equal(task.taskProgress, 3);
     assert.equal(task.topic, 'Task title');
+  });
+
+  it('adds shortcut tooltips to the first three priority picker buttons', () => {
+    const priority = MARKER_SECTIONS.find((section) => section.key === 'priority');
+
+    withFakeDocument(() => {
+      assert.equal(buildPickerButton(priority, 1, 'number').title, 'Cmd +1');
+      assert.equal(buildPickerButton(priority, 2, 'number').title, 'Cmd+2');
+      assert.equal(buildPickerButton(priority, 3, 'number').title, 'Cmd+3');
+      assert.equal(buildPickerButton(priority, 4, 'number').title, 'Priority 4');
+    });
+  });
+
+  it('keeps non-priority picker button titles descriptive', () => {
+    const task = MARKER_SECTIONS.find((section) => section.key === 'taskProgress');
+
+    withFakeDocument(() => {
+      assert.equal(buildPickerButton(task, 0, 'task').title, 'Task 0');
+    });
   });
 });
