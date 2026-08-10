@@ -4,8 +4,36 @@ import {
   parseLineContent,
   markerPrefixHTML,
   taskMarkerHTML,
+  buildPickerButton,
 } from '../../markers.mjs';
 import { parseMarkdown, serializeMarkdown } from '../../markmap-convert.mjs';
+
+function withDocument(callback) {
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    createElement() {
+      return {
+        type: '',
+        className: '',
+        dataset: {},
+        title: '',
+        textContent: '',
+        classList: {
+          values: new Set(),
+          add(...classes) {
+            for (const className of classes) this.values.add(className);
+          },
+        },
+      };
+    },
+  };
+
+  try {
+    return callback();
+  } finally {
+    globalThis.document = previousDocument;
+  }
+}
 
 describe('markers', () => {
   it('parses legacy priority span', () => {
@@ -68,5 +96,29 @@ markmap:
     assert.equal(task.priority, 2);
     assert.equal(task.taskProgress, 3);
     assert.equal(task.topic, 'Task title');
+  });
+
+  it('shows keyboard shortcut tooltips for top priority picker buttons', () => {
+    withDocument(() => {
+      const prioritySection = { key: 'priority', label: 'Priority' };
+
+      for (const level of [1, 2, 3]) {
+        const btn = buildPickerButton(prioritySection, level, 'number');
+        assert.equal(btn.dataset.section, 'priority');
+        assert.equal(btn.dataset.level, String(level));
+        assert.match(btn.title, /Cmd/);
+        assert.match(btn.title, new RegExp(String(level)));
+        assert.notEqual(btn.title, `Priority ${level}`);
+      }
+
+      assert.equal(
+        buildPickerButton(prioritySection, 4, 'number').title,
+        'Priority 4'
+      );
+      assert.equal(
+        buildPickerButton({ key: 'taskProgress', label: 'Task' }, 3, 'task').title,
+        'Task 3'
+      );
+    });
   });
 });
