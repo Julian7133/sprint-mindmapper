@@ -62,6 +62,14 @@ test.describe('Sprint Mindmap Editor', () => {
     await expect(selected.locator('.marker-pri')).toHaveText('2');
   });
 
+  test('shows priority shortcut guidance in picker tooltips', async ({ page }) => {
+    const titles = await page
+      .locator('.marker-pick-btn[data-section="priority"]')
+      .evaluateAll((buttons) => buttons.slice(0, 4).map((button) => button.getAttribute('title')));
+
+    expect(titles).toEqual(['Cmd +1', 'Cmd+2', 'Cmd+3', 'Priority 4']);
+  });
+
   test('assigns task progress via marker picker', async ({ page }) => {
     await selectNode(page, 'Task one');
     const taskBtn = page.locator('.marker-picker-row .marker-pick-btn[data-section="taskProgress"][data-level="4"]');

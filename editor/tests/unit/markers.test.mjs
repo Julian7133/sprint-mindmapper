@@ -1,11 +1,48 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  MARKER_SECTIONS,
+  buildPickerButton,
   parseLineContent,
   markerPrefixHTML,
   taskMarkerHTML,
 } from '../../markers.mjs';
 import { parseMarkdown, serializeMarkdown } from '../../markmap-convert.mjs';
+
+function withDocumentStub(fn) {
+  const previousDocument = globalThis.document;
+  globalThis.document = {
+    createElement(tagName) {
+      return {
+        tagName: tagName.toUpperCase(),
+        type: '',
+        className: '',
+        dataset: {},
+        title: '',
+        textContent: '',
+        classList: {
+          values: [],
+          add(...names) {
+            this.values.push(...names);
+          },
+          contains(name) {
+            return this.values.includes(name);
+          },
+        },
+      };
+    },
+  };
+
+  try {
+    fn();
+  } finally {
+    if (previousDocument === undefined) {
+      delete globalThis.document;
+    } else {
+      globalThis.document = previousDocument;
+    }
+  }
+}
 
 describe('markers', () => {
   it('parses legacy priority span', () => {
@@ -44,6 +81,28 @@ describe('markers', () => {
     assert.match(html, /data-v="6"/);
     assert.match(html, />✓</);
   });
+
+  it('labels priority picker shortcut tooltips', () => withDocumentStub(() => {
+    const prioritySection = MARKER_SECTIONS.find((section) => section.key === 'priority');
+
+    const titles = [1, 2, 3, 4].map((level) =>
+      buildPickerButton(prioritySection, level, prioritySection.kind).title
+    );
+
+    assert.deepEqual(titles, ['Cmd +1', 'Cmd+2', 'Cmd+3', 'Priority 4']);
+  }));
+
+  it('keeps non-priority picker tooltips descriptive', () => withDocumentStub(() => {
+    const taskSection = MARKER_SECTIONS.find((section) => section.key === 'taskProgress');
+
+    const button = buildPickerButton(taskSection, 0, taskSection.kind);
+
+    assert.equal(button.title, 'Task 0');
+    assert.equal(button.dataset.section, 'taskProgress');
+    assert.equal(button.dataset.level, '0');
+    assert.equal(button.classList.contains('marker-task'), true);
+    assert.equal(button.classList.contains('task-0'), true);
+  }));
 
   it('round-trips markers in markdown', () => {
     const md = `---
