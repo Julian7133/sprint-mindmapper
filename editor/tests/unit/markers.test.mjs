@@ -1,11 +1,44 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import {
   parseLineContent,
   markerPrefixHTML,
   taskMarkerHTML,
+  buildPickerButton,
 } from '../../markers.mjs';
 import { parseMarkdown, serializeMarkdown } from '../../markmap-convert.mjs';
+
+let originalDocument;
+
+beforeEach(() => {
+  originalDocument = globalThis.document;
+  globalThis.document = {
+    createElement(tagName) {
+      const classes = new Set();
+      return {
+        tagName,
+        type: '',
+        className: '',
+        dataset: {},
+        title: '',
+        textContent: '',
+        classList: {
+          add(...names) {
+            for (const name of names) classes.add(name);
+          },
+          contains(name) {
+            return classes.has(name);
+          },
+        },
+      };
+    },
+  };
+});
+
+afterEach(() => {
+  if (originalDocument === undefined) delete globalThis.document;
+  else globalThis.document = originalDocument;
+});
 
 describe('markers', () => {
   it('parses legacy priority span', () => {
@@ -68,5 +101,24 @@ markmap:
     assert.equal(task.priority, 2);
     assert.equal(task.taskProgress, 3);
     assert.equal(task.topic, 'Task title');
+  });
+
+  it('uses hotkey-specific tooltips for priority picker buttons 1 through 3', () => {
+    const section = { key: 'priority', label: 'Priority' };
+
+    assert.equal(buildPickerButton(section, 1, 'number').title, 'Cmd +1');
+    assert.equal(buildPickerButton(section, 2, 'number').title, 'Cmd+2');
+    assert.equal(buildPickerButton(section, 3, 'number').title, 'Cmd+3');
+  });
+
+  it('keeps generic picker tooltips outside priority hotkeys', () => {
+    assert.equal(
+      buildPickerButton({ key: 'priority', label: 'Priority' }, 4, 'number').title,
+      'Priority 4'
+    );
+    assert.equal(
+      buildPickerButton({ key: 'taskProgress', label: 'Task' }, 3, 'task').title,
+      'Task 3'
+    );
   });
 });
