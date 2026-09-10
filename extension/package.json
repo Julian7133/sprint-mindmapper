@@ -19,12 +19,13 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.48",
-    "esbuild": "^0.25.12",
-    "vitest": "^3.2.7"
+    "esbuild": "^0.28.0",
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
     "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
     "fsevents@2.3.2": true
   }

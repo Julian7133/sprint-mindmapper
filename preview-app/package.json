@@ -14,7 +14,7 @@
     "markmap-view": "^0.18"
   },
   "devDependencies": {
-    "esbuild": "^0.25.12",
-    "vitest": "^3.2.7"
+    "esbuild": "^0.28.0",
+    "vitest": "^4.1.11"
   }
 }
