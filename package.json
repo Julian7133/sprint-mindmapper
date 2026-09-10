@@ -6,6 +6,12 @@
     "test": "npm --prefix editor run test",
     "test:e2e": "npm --prefix editor run test:e2e",
     "test:all": "npm --prefix editor run test:all",
-    "lint": "npm --prefix editor run lint"
+    "lint": "npm --prefix editor run lint",
+    "native:stage": "npm --prefix native-app run stage",
+    "native:build": "npm --prefix native-app run build",
+    "native:test": "npm --prefix native-app run test",
+    "native:dev": "npm --prefix native-app run dev",
+    "native:build:app": "npm --prefix native-app run build:app",
+    "native:release": "npm --prefix native-app run build:app:release"
   }
 }

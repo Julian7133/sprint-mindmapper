@@ -43,10 +43,51 @@ function countIndent(raw) {
   return n;
 }
 
-function lineToNode(level, rawText, idCounter, nextId) {
-  const parsed = parseLineContent(rawText);
+/**
+ * Stable node-id persistence (cross-map links, M2).
+ *
+ * Node ids must survive the markdown roundtrip, otherwise `map:<file>#<id>`
+ * links break on any edit. We persist a node's id as an inline anchor on its
+ * own line: a trailing `<!--smm:ID-->` comment. On parse we strip the comment
+ * and use the id verbatim; on serialize we re-emit it. Ids are scoped per file.
+ *
+ * The topic-path is used as a fallback when an id can't be resolved at
+ * navigation time (see link-target.mjs).
+ */
+export const NODE_ID_RE = /<!--smm:([A-Za-z0-9_-]+)-->\s*$/;
+
+export function extractNodeId(rawText) {
+  const m = NODE_ID_RE.exec(rawText);
+  if (m) {
+    return { id: m[1], rest: rawText.slice(0, m.index) };
+  }
+  return { id: null, rest: rawText };
+}
+
+export function nodeIdSuffix(node) {
+  if (!node || node.id === 'root' || !node.id) return '';
+  return ` <!--smm:${node.id}-->`;
+}
+
+function lineToNode(level, rawText, idCounter, nextId, usedIds) {
+  const { id: persistedId, rest } = extractNodeId(rawText);
+  const parsed = parseLineContent(rest);
+  let id = level === 1 ? 'root' : null;
+  if (id !== 'root') {
+    if (persistedId && !usedIds.has(persistedId)) {
+      id = persistedId;
+      usedIds.add(persistedId);
+    } else {
+      let fresh;
+      do {
+        fresh = `me${nextId()}`;
+      } while (usedIds.has(fresh));
+      id = fresh;
+      usedIds.add(id);
+    }
+  }
   const node = {
-    id: level === 1 ? 'root' : `me${nextId()}`,
+    id,
     topic: parsed.topic,
     children: [],
   };
@@ -69,6 +110,7 @@ export function parseMarkdown(text) {
   let headingLevel = 0;
   let idCounter = 0;
   const nextId = () => ++idCounter;
+  const usedIds = new Set();
   let continuationMode = false;
 
   for (const raw of lines) {
@@ -84,7 +126,7 @@ export function parseMarkdown(text) {
       continuationMode = false;
       const level = headingMatch[1].length;
       headingLevel = level;
-      const node = lineToNode(level, headingMatch[2], idCounter, nextId);
+      const node = lineToNode(level, headingMatch[2], idCounter, nextId, usedIds);
       attachNode(root, stack, level, node, (r) => {
         root = r;
       });
@@ -96,7 +138,7 @@ export function parseMarkdown(text) {
       continuationMode = false;
       const indent = countIndent(bulletMatch[1]);
       const level = headingLevel + 1 + Math.floor(indent / 2);
-      const node = lineToNode(level, bulletMatch[2], idCounter, nextId);
+      const node = lineToNode(level, bulletMatch[2], idCounter, nextId, usedIds);
       attachNode(root, stack, level, node, (r) => {
         root = r;
       });
@@ -161,7 +203,7 @@ function walkNode(node, depth, out) {
   const text = markers ? `${markers}${topicText}` : topicText;
 
   if (depth === 1) out.push('');
-  out.push(prefix + text);
+  out.push(prefix + text + nodeIdSuffix(node));
 
   for (const child of node.children || []) {
     walkNode(child, depth + 1, out);

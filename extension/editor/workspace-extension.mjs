@@ -169,6 +169,7 @@ export function createWorkspace() {
         mode: 'folder',
         folderName: ws.folderName,
         activeFile: active,
+        openTabs: meta?.openTabs || (active ? [active] : []),
         markdownName: active ? active.split('/').pop() : '',
         draftExists: Boolean(draftText.trim()),
         files,
@@ -293,6 +294,17 @@ export function createWorkspace() {
     async persistActiveFile(relPath) {
       requireHandle();
       ws.setActiveFile(relPath);
+      await persistMeta();
+    },
+
+    setOpenTabs(relPaths) {
+      if (meta) meta.openTabs = [...relPaths];
+    },
+
+    async persistSession({ openTabs, activeFile } = {}) {
+      requireHandle();
+      if (activeFile) ws.setActiveFile(activeFile);
+      if (Array.isArray(openTabs)) ws.setOpenTabs(openTabs);
       await persistMeta();
     },
   };

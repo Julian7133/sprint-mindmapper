@@ -25,6 +25,9 @@
         <button type="button" id="btn-markers" data-testid="btn-markers" title="Markers panel (Ctrl/Cmd+Shift+M)">
           Markers
         </button>
+        <button type="button" id="btn-backlinks" data-testid="btn-backlinks" title="Backlinks panel">
+          Backlinks
+        </button>
         <button type="button" id="btn-save" title="Save to markdown (Ctrl/Cmd+S)">
           Save
         </button>
@@ -44,6 +47,8 @@
       <span id="focus-banner-text"></span>
       <button type="button" id="btn-exit-focus" class="focus-banner-exit">Exit focus (Shift+F6)</button>
     </div>
+
+    <nav id="tab-bar" class="tab-bar hidden" data-testid="tab-bar" aria-label="Open maps"></nav>
 
     <main id="map" data-testid="map" tabindex="-1"></main>
 
@@ -92,6 +97,9 @@
       </div>
     </aside>
     <aside id="marker-picker" class="marker-picker hidden" data-testid="marker-picker" aria-label="XMind markers"></aside>
+    <aside id="backlinks-panel" class="backlinks-panel hidden" data-testid="backlinks-panel" aria-label="Backlinks"></aside>
+
+    <div id="link-picker" class="link-picker hidden" data-testid="link-picker" role="dialog" aria-labelledby="link-picker-title"></div>
 
     <div id="reconnect-prompt" class="reconnect-prompt hidden" data-testid="reconnect-prompt">
       <div class="reconnect-dialog" role="dialog" aria-labelledby="reconnect-title">

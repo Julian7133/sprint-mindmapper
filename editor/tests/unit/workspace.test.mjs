@@ -229,6 +229,30 @@ describe('workspace facade', () => {
     assert.equal(saved.meta.folderLabel, 'Saved Project');
   });
 
+  it('persists and restores the open-tab session', async () => {
+    const root = dir('Project', {
+      'alpha.md': file('alpha.md', '# Alpha\n'),
+      'beta.md': file('beta.md', '# Beta\n'),
+    });
+    await saveFolderRecord(root, { activeFile: 'alpha.md' });
+    const workspace = createWorkspace();
+    await workspace.init();
+    await workspace.reconnectSavedFolder();
+
+    await workspace.persistSession({
+      openTabs: ['alpha.md', 'beta.md'],
+      activeFile: 'beta.md',
+    });
+
+    const saved = await loadSavedFolderWorkspace();
+    assert.deepEqual(saved.meta.openTabs, ['alpha.md', 'beta.md']);
+    assert.equal(saved.meta.activeFile, 'beta.md');
+
+    const info = await workspace.getInfo();
+    assert.deepEqual(info.openTabs, ['alpha.md', 'beta.md']);
+    assert.equal(info.activeFile, 'beta.md');
+  });
+
   it('imports converted files into folder mode without overwriting existing markdown', async () => {
     const root = dir('Project', {
       'import.md': file('import.md', '# Existing\n'),

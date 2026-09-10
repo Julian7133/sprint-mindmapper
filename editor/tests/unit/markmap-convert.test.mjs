@@ -146,3 +146,34 @@ out of date? Well, what I do is install software."
     assert.equal(parsed.children[0].topic, topic);
   });
 });
+
+describe('markmap-convert node-id persistence', () => {
+  it('persists inline node ids across roundtrip', () => {
+    const src = '# Root\n## Child\n### Grand\n- [item](map:bar.md#me7)\n';
+    const a = parseMarkdown(src);
+    const md = serializeMarkdown(a.frontmatter, a.root);
+    assert.match(md, /<!--smm:me1-->/);
+    const b = parseMarkdown(md);
+    const child = b.root.children[0];
+    assert.equal(child.id, 'me1');
+    assert.equal(child.children[0].id, 'me2'); // Grand
+    assert.equal(child.children[0].children[0].id, 'me3'); // item under Grand
+    assert.equal(child.children[0].children[0].hyperLink, 'map:bar.md#me7');
+  });
+
+  it('assigns fresh unique ids to nodes without a persisted anchor', () => {
+    const src = '# Root\n## A\n## B\n';
+    const a = parseMarkdown(src);
+    const md = serializeMarkdown(a.frontmatter, a.root);
+    const b = parseMarkdown(md);
+    const ids = b.root.children.map((n) => n.id);
+    assert.equal(new Set(ids).size, ids.length);
+  });
+
+  it('does not emit an anchor for the root node', () => {
+    const src = '# Root\n## A\n';
+    const a = parseMarkdown(src);
+    const md = serializeMarkdown(a.frontmatter, a.root);
+    assert.equal(md.match(/<!--smm:root-->/), null);
+  });
+});

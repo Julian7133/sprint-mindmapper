@@ -9,6 +9,24 @@ import {
 import { handleTypeToEdit } from './type-to-edit.mjs';
 import { handlePasteNodes, initPasteChoiceDialog } from './paste-nodes.mjs';
 import { createWorkspace } from './workspace.mjs';
+import {
+  activateTab as activateTabReducer,
+  closeTab as closeTabReducer,
+  createTabState,
+  cycleTab as cycleTabReducer,
+  openTab as openTabReducer,
+} from './tab-state.mjs';
+import { initLinkPicker } from './link-picker.mjs';
+import { initBacklinksPanel } from './backlinks-panel.mjs';
+import {
+  indexWorkspace,
+  buildIndex,
+} from './link-index.mjs';
+import {
+  isInternalTarget,
+  parseTarget,
+  resolveNodeRef,
+} from './link-target.mjs';
 
 const ws = createWorkspace();
 
@@ -44,6 +62,22 @@ const driveSyncStatus = document.getElementById('drive-sync-status');
 const btnEnableDrive = document.getElementById('btn-enable-drive');
 const btnSyncDrive = document.getElementById('btn-sync-drive');
 const btnDriveSignout = document.getElementById('btn-drive-signout');
+const mapEl = document.getElementById('map');
+const tabBarEl = document.getElementById('tab-bar');
+const linkPickerEl = document.getElementById('link-picker');
+const backlinksPanelEl = document.getElementById('backlinks-panel');
+const btnBacklinks = document.getElementById('btn-backlinks');
+
+const windowId = crypto.randomUUID();
+let broadcastChannel = null;
+
+const docs = new Map();
+let tabState = createTabState();
+let workspaceFiles = [];
+let pendingOpenFile = null;
+let renamingFile = null;
+
+let linkIndex = buildIndex([]);
 
 async function trackRecentFile(relPath) {
   if (!globalThis.chrome?.storage?.local || !relPath) return;
@@ -73,7 +107,7 @@ async function updateDriveSyncUi() {
       : 'Drive sync enabled — save a file, then sync.';
   }
   btnDriveSignout?.classList.toggle('hidden', !meta.enabled);
-  btnSyncDrive.disabled = !activeFile || !ws.isConnected();
+  btnSyncDrive.disabled = !currentDoc()?.relPath || !ws.isConnected();
 }
 
 async function enableDriveSync() {
@@ -88,13 +122,14 @@ async function enableDriveSync() {
 }
 
 async function syncActiveFileToDrive() {
-  if (!activeFile || !ws.isConnected()) return;
+  const doc = currentDoc();
+  if (!doc?.relPath || !ws.isConnected()) return;
   try {
     setStatus('syncing to Drive…');
-    const data = mind.getData().nodeData;
-    const md = serializeMarkdown(frontmatter, data);
+    const data = doc.mind.getData().nodeData;
+    const md = serializeMarkdown(doc.frontmatter, data);
     const { syncFileToDrive } = await import('./drive-sync.mjs');
-    await syncFileToDrive({ relPath: activeFile, content: md });
+    await syncFileToDrive({ relPath: doc.relPath, content: md });
     await updateDriveSyncUi();
     setStatus('synced to Drive', 'saved');
   } catch (err) {
@@ -110,71 +145,58 @@ async function signOutDriveSync() {
   setStatus('signed out of Drive');
 }
 
-
-let frontmatter = '';
-let selectedId = null;
-let activeFile = null;
-let workspaceFiles = [];
-let isolateActive = false;
-let saveTimer = null;
-let renderPollTimer = null;
-let dirty = false;
-let observer;
-let pendingOpenFile = null;
-let renamingFile = null;
-
 const markerPicker = initMarkerPicker({
   panelEl: markerPickerPanel,
-  getSelectedNode: getSelectedNodeObj,
+  getSelectedNode: () => currentDoc()?.getSelectedNode() ?? null,
   onChange: () => {
-    decorate();
-    scheduleDraftSave();
+    const doc = currentDoc();
+    if (!doc) return;
+    doc.decorate();
+    doc.scheduleDraftSave();
   },
-});
-
-const mind = new MindElixir({
-  el: '#map',
-  direction: MindElixir.RIGHT,
-  draggable: true,
-  editable: true,
-  keypress: true,
-  contextMenu: {
-    extend: [
-      {
-        name: 'Set link…',
-        onclick: () => {
-          const node = getSelectedNodeObj();
-          if (!node || node.id === 'root') return;
-          const url = prompt('Link URL', node.hyperLink || 'https://');
-          if (url === null) return;
-          if (url.trim()) {
-            node.hyperLink = url.trim();
-          } else {
-            delete node.hyperLink;
-          }
-          mind.refresh();
-          decorate();
-          scheduleDraftSave();
-        },
-      },
-    ],
-  },
-  toolBar: true,
-  allowUndo: true,
-  newTopicName: 'New task',
 });
 
 const { showPasteChoiceDialog } = initPasteChoiceDialog(document);
 
-mind.pasteHandler = (e) => {
-  handlePasteNodes(e, mind, {
-    onChange: () => {
-      decorate();
-      scheduleDraftSave();
-    },
-    showDialog: showPasteChoiceDialog,
-  }).catch(console.error);
-};
+const linkPicker = initLinkPicker({
+  dialogEl: linkPickerEl,
+  listFiles: async () => {
+    if (workspaceFiles.length) return workspaceFiles;
+    workspaceFiles = await ws.listFiles();
+    return workspaceFiles;
+  },
+  getFileTree: async (rel) => {
+    const open = docs.get(rel);
+    if (open?.mind) return open.mind.nodeData;
+    const text = await ws.readMarkdown(rel);
+    return parseMarkdown(text).root;
+  },
+  onChange: () => {
+    const doc = currentDoc();
+    if (!doc) return;
+    doc.mind.refresh();
+    doc.decorate();
+    doc.scheduleDraftSave();
+  },
+});
+
+const backlinksPanel = initBacklinksPanel({
+  panelEl: backlinksPanelEl,
+  onNavigate: (link) => {
+    navigateToTarget({ internal: true, file: link.fromFile, nodeRef: link.fromNodeId }).catch(
+      console.error
+    );
+  },
+});
+
+function currentDoc() {
+  return docs.get(tabState.activeFile) || null;
+}
+
+function pathBasename(rel) {
+  const parts = rel.split(/[/\\]/);
+  return parts[parts.length - 1] || rel;
+}
 
 function updateWorkspaceLabel() {
   if (ws.isFolderMode() && ws.folderName) {
@@ -201,29 +223,13 @@ function updateFolderConnectUi() {
 }
 
 function updateFocusBanner() {
-  if (mind.isFocusMode && mind.nodeData?.topic) {
-    focusBannerText.textContent = `Focus: ${mind.nodeData.topic}`;
+  const doc = currentDoc();
+  if (doc?.mind.isFocusMode && doc.mind.nodeData?.topic) {
+    focusBannerText.textContent = `Focus: ${doc.mind.nodeData.topic}`;
     focusBanner.classList.remove('hidden');
   } else {
     focusBanner.classList.add('hidden');
   }
-}
-
-function exitFocusMode() {
-  if (!mind.isFocusMode) return;
-  mind.cancelFocus();
-  updateFocusBanner();
-  decorate();
-  mind.toCenter();
-}
-
-function enterFocusMode() {
-  const nodeEl = mind.currentNode;
-  if (!nodeEl?.nodeObj?.parent) return;
-  mind.focusNode(nodeEl);
-  updateFocusBanner();
-  decorate();
-  mind.toCenter();
 }
 
 function showReconnectPrompt(folderLabel) {
@@ -249,13 +255,6 @@ function setStatus(text, kind = '') {
   statusEl.className = `status${kind ? ` ${kind}` : ''}`;
 }
 
-function reloadMap(root) {
-  ensureExpanded(root);
-  const err = mind.refresh({ nodeData: root });
-  if (err instanceof Error) throw err;
-  mind.toCenter();
-}
-
 function findById(node, id) {
   if (!node || !id) return null;
   if (node.id === id) return node;
@@ -264,12 +263,6 @@ function findById(node, id) {
     if (found) return found;
   }
   return null;
-}
-
-function getSelectedNodeObj() {
-  const current = mind.currentNode?.nodeObj;
-  if (current) return current;
-  return findById(mind.getData().nodeData, selectedId);
 }
 
 function ensureExpanded(node) {
@@ -282,52 +275,298 @@ function walkNodes(node, fn, depth = 0) {
   for (const child of node.children || []) walkNodes(child, fn, depth + 1);
 }
 
-function decorate() {
-  const container = mind.container;
-  observer?.disconnect();
+function focusMapIfNotEditing() {
+  if (isEditing() || document.getElementById('input-box')) return;
+  currentDoc()?.mind.container.focus();
+}
 
-  const selected = getSelectedNodeObj();
-  const selPriority =
-    isolateActive && selected?.priority != null ? selected.priority : undefined;
+function focusInputBox() {
+  requestAnimationFrame(() => document.getElementById('input-box')?.focus());
+}
 
-  for (const tpc of container.querySelectorAll('me-tpc')) {
-    const node = tpc.nodeObj;
-    if (!node) continue;
-    if (tpc.querySelector('input,textarea')) continue;
+function createMapDoc(rel) {
+  const el = document.createElement('div');
+  el.className = 'map-doc';
+  el.dataset.rel = rel;
+  mapEl.appendChild(el);
 
-    tpc.querySelector('.node-markers')?.remove();
-    if (node.id !== 'root') {
-      tpc.prepend(createMarkerElements(node));
+  const doc = {
+    relPath: rel,
+    el,
+    mind: null,
+    frontmatter: '',
+    selectedId: null,
+    isolateActive: false,
+    dirty: false,
+    saveTimer: null,
+    renderPollTimer: null,
+    observer: null,
+  };
+
+  doc.mind = new MindElixir({
+    el,
+    direction: MindElixir.RIGHT,
+    draggable: true,
+    editable: true,
+    keypress: true,
+    contextMenu: {
+      extend: [
+        {
+          name: 'Set link…',
+          onclick: () => {
+            const node = doc.getSelectedNode();
+            if (!node || node.id === 'root') return;
+            linkPicker.open(node);
+          },
+        },
+      ],
+    },
+    toolBar: true,
+    allowUndo: true,
+    newTopicName: 'New task',
+  });
+
+  doc.mind.pasteHandler = (e) => {
+    handlePasteNodes(e, doc.mind, {
+      onChange: () => {
+        doc.decorate();
+        doc.scheduleDraftSave();
+      },
+      showDialog: showPasteChoiceDialog,
+    }).catch(console.error);
+  };
+
+  doc.mind.container.addEventListener('click', (e) => {
+    const anchor = e.target.closest('a.hyper-link');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href');
+    if (!isInternalTarget(href)) return;
+    // Any map: link is handled in-app (never let the browser navigate to it).
+    e.preventDefault();
+    e.stopPropagation();
+    const target = parseTarget(href);
+    if (!target) {
+      setStatus('Invalid internal link', 'error');
+      return;
+    }
+    navigateToTarget(target).catch(console.error);
+  });
+
+  doc.getSelectedNode = () => {
+    const current = doc.mind.currentNode?.nodeObj;
+    if (current) return current;
+    return findById(doc.mind.getData().nodeData, doc.selectedId);
+  };
+
+  doc.mind.bus.addListener('selectNodes', (nodes) => {
+    if (nodes?.length) {
+      doc.selectedId = nodes[nodes.length - 1]?.id ?? null;
+      doc.decorate();
+      focusMapIfNotEditing();
+    }
+  });
+
+  doc.mind.bus.addListener('selectNewNode', (nodeObj) => {
+    doc.selectedId = nodeObj?.id ?? null;
+    doc.decorate();
+    focusMapIfNotEditing();
+  });
+
+  doc.mind.bus.addListener('unselectNodes', () => {
+    if (!doc.mind.currentNodes?.length) {
+      doc.selectedId = null;
+      doc.decorate();
+    }
+  });
+
+  doc.mind.bus.addListener('operation', (op) => {
+    if (op?.name === 'beginEdit') focusInputBox();
+    doc.scheduleDraftSave();
+  });
+  doc.mind.bus.addListener('expandNode', () => doc.scheduleDraftSave());
+
+  doc.decorate = () => {
+    const container = doc.mind.container;
+    doc.observer?.disconnect();
+
+    const selected = doc.getSelectedNode();
+    const selPriority =
+      doc.isolateActive && selected?.priority != null ? selected.priority : undefined;
+
+    for (const tpc of container.querySelectorAll('me-tpc')) {
+      const node = tpc.nodeObj;
+      if (!node) continue;
+      if (tpc.querySelector('input,textarea')) continue;
+
+      tpc.querySelector('.node-markers')?.remove();
+      if (node.id !== 'root') {
+        tpc.prepend(createMarkerElements(node));
+      }
+
+      const dim =
+        selPriority != null &&
+        node.id !== 'root' &&
+        node.priority !== selPriority;
+      tpc.classList.toggle('dimmed', dim);
     }
 
-    const dim =
-      selPriority != null &&
-      node.id !== 'root' &&
-      node.priority !== selPriority;
-    tpc.classList.toggle('dimmed', dim);
-  }
+    doc.mind.linkDiv();
 
-  // Markers are injected after Mind Elixir has laid out the tree, which widens
-  // each me-tpc. Re-anchor the connection lines to the updated node edges so they
-  // no longer cut across the node text. Safe here: the observer is disconnected,
-  // so linkDiv's own DOM writes won't retrigger decorate.
-  mind.linkDiv();
+    if (doc === currentDoc()) {
+      updatePriorityFilterUI(selected);
+      markerPicker.refresh();
+      updateFocusBanner();
+      renderBacklinks();
+    }
 
-  updatePriorityFilterUI(selected);
-  markerPicker.refresh();
-  updateFocusBanner();
-  observer?.observe(container, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
+    doc.observer?.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  };
+
+  doc.setupObserver = () => {
+    doc.observer?.disconnect();
+    doc.observer = new MutationObserver(() => doc.decorate());
+    doc.observer.observe(doc.mind.container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  };
+
+  doc.reload = (root) => {
+    ensureExpanded(root);
+    const err = doc.mind.refresh({ nodeData: root });
+    if (err instanceof Error) throw err;
+    doc.mind.toCenter();
+  };
+
+  doc.scheduleDraftSave = () => {
+    doc.dirty = true;
+    clearTimeout(doc.saveTimer);
+    doc.saveTimer = setTimeout(() => doc.saveDraft(), 500);
+    setStatus('draft saving…');
+  };
+
+  doc.saveDraft = async () => {
+    try {
+      const data = doc.mind.getData().nodeData;
+      const md = serializeMarkdown(doc.frontmatter, data);
+      await ws.writeDraft(doc.relPath, md);
+      setStatus('draft saved');
+    } catch (err) {
+      console.error(err);
+      setStatus('draft error', 'error');
+    }
+  };
+
+  doc.saveMarkdown = async () => {
+    try {
+      setStatus('saving…');
+      const data = doc.mind.getData().nodeData;
+      const md = serializeMarkdown(doc.frontmatter, data);
+      const result = await ws.saveMarkdown(doc.relPath, md);
+      doc.dirty = false;
+      setStatus('saved', 'saved');
+      broadcastSave(doc.relPath);
+      await trackRecentFile(doc.relPath);
+      await updateDriveSyncUi();
+      rebuildLinkIndex();
+      if (result.rendering) {
+        pollRenderStatus(doc);
+      } else {
+        setStatus('saved · markmap updated', 'saved');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus('save error', 'error');
+    }
+  };
+
+  doc.setPriority = (priorityValue) => {
+    const node = doc.getSelectedNode();
+    if (!applyPriorityToNode(node, priorityValue)) return false;
+    doc.decorate();
+    doc.scheduleDraftSave();
+    doc.mind.container.focus();
+    return true;
+  };
+
+  doc.togglePriorityFilter = () => {
+    const selected = doc.getSelectedNode();
+    if (!selected?.priority || selected.id === 'root') return;
+    doc.isolateActive = !doc.isolateActive;
+    doc.decorate();
+  };
+
+  doc.expandAll = () => {
+    walkNodes(doc.mind.nodeData, (node) => {
+      node.expanded = true;
+    });
+    doc.mind.refresh();
+    doc.decorate();
+    doc.scheduleDraftSave();
+  };
+
+  doc.collapseAll = () => {
+    walkNodes(doc.mind.nodeData, (node, depth) => {
+      if (depth > 0) node.expanded = false;
+    });
+    doc.mind.refresh();
+    doc.decorate();
+    doc.scheduleDraftSave();
+  };
+
+  doc.enterFocusMode = () => {
+    const nodeEl = doc.mind.currentNode;
+    if (!nodeEl?.nodeObj?.parent) return;
+    doc.mind.focusNode(nodeEl);
+    updateFocusBanner();
+    doc.decorate();
+    doc.mind.toCenter();
+  };
+
+  doc.exitFocusMode = () => {
+    if (!doc.mind.isFocusMode) return;
+    doc.mind.cancelFocus();
+    updateFocusBanner();
+    doc.decorate();
+    doc.mind.toCenter();
+  };
+
+  return doc;
+}
+
+function pollRenderStatus(doc) {
+  clearInterval(doc.renderPollTimer);
+  doc.renderPollTimer = setInterval(async () => {
+    try {
+      const data = await ws.pollRenderStatus();
+      if (data.status === 'running') {
+        setStatus('rendering markmap…');
+      } else if (data.status === 'done') {
+        setStatus('saved · markmap updated', 'saved');
+        clearInterval(doc.renderPollTimer);
+      } else if (data.status === 'error') {
+        setStatus('saved · render failed', 'error');
+        clearInterval(doc.renderPollTimer);
+      } else {
+        clearInterval(doc.renderPollTimer);
+      }
+    } catch {
+      clearInterval(doc.renderPollTimer);
+    }
+  }, 800);
 }
 
 function updatePriorityFilterUI(selected) {
   filterPanel.classList.remove('hidden');
 
   if (!selected || selected.id === 'root' || selected.priority == null) {
-    isolateActive = false;
+    const doc = currentDoc();
+    if (doc) doc.isolateActive = false;
     filterBtn.disabled = true;
     filterBtn.classList.remove('active');
     filterBadge.className = 'marker-pri pri-1';
@@ -343,98 +582,14 @@ function updatePriorityFilterUI(selected) {
   filterBadge.className = `marker-pri pri-${selected.priority}`;
   filterBadge.textContent = String(selected.priority);
   filterLabel.textContent = `Only show nodes with same priority (${selected.priority})`;
-  filterBtn.classList.toggle('active', isolateActive);
-  filterBtn.title = isolateActive
+  filterBtn.classList.toggle('active', currentDoc()?.isolateActive);
+  filterBtn.title = currentDoc()?.isolateActive
     ? 'Filtering by priority — click to show all'
     : 'Only show nodes with same priority';
 }
 
-function setPriority(priorityValue) {
-  const node = getSelectedNodeObj();
-  if (!applyPriorityToNode(node, priorityValue)) return false;
-  decorate();
-  scheduleDraftSave();
-  mind.container.focus();
-  return true;
-}
-
-function focusMap() {
-  mind.container.focus();
-}
-
-function focusMapIfNotEditing() {
-  if (isEditing() || document.getElementById('input-box')) return;
-  focusMap();
-}
-
-function focusInputBox() {
-  requestAnimationFrame(() => document.getElementById('input-box')?.focus());
-}
-
-function scheduleDraftSave() {
-  dirty = true;
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveDraft, 500);
-  setStatus('draft saving…');
-}
-
-async function saveDraft() {
-  try {
-    const data = mind.getData().nodeData;
-    const md = serializeMarkdown(frontmatter, data);
-    await ws.writeDraft(activeFile, md);
-    setStatus('draft saved');
-  } catch (err) {
-    console.error(err);
-    setStatus('draft error', 'error');
-  }
-}
-
-async function saveMarkdown() {
-  try {
-    setStatus('saving…');
-    const data = mind.getData().nodeData;
-    const md = serializeMarkdown(frontmatter, data);
-    const result = await ws.saveMarkdown(activeFile, md);
-    dirty = false;
-    setStatus('saved', 'saved');
-    await trackRecentFile(activeFile);
-    await updateDriveSyncUi();
-    if (result.rendering) {
-      pollRenderStatus();
-    } else {
-      setStatus('saved · markmap updated', 'saved');
-    }
-  } catch (err) {
-    console.error(err);
-    setStatus('save error', 'error');
-  }
-}
-
-function pollRenderStatus() {
-  clearInterval(renderPollTimer);
-  renderPollTimer = setInterval(async () => {
-    try {
-      const data = await ws.pollRenderStatus();
-      if (data.status === 'running') {
-        setStatus('rendering markmap…');
-      } else if (data.status === 'done') {
-        setStatus('saved · markmap updated', 'saved');
-        clearInterval(renderPollTimer);
-      } else if (data.status === 'error') {
-        setStatus('saved · render failed', 'error');
-        clearInterval(renderPollTimer);
-      } else {
-        clearInterval(renderPollTimer);
-      }
-    } catch {
-      clearInterval(renderPollTimer);
-    }
-  }, 800);
-}
-
-async function loadFileContent() {
-  const rel = activeFile || ws.getActiveFile();
+async function loadFileContent(doc) {
+  const rel = doc.relPath;
   const info = await ws.getInfo();
 
   let text;
@@ -451,8 +606,13 @@ async function loadFileContent() {
   return { info, text };
 }
 
-async function openFile(rel, { force = false } = {}) {
-  if (!force && dirty && rel !== activeFile) {
+async function openTab(rel, { force = false } = {}) {
+  const current = currentDoc();
+  if (
+    !force &&
+    current?.dirty &&
+    !docs.has(rel)
+  ) {
     pendingOpenFile = rel;
     fileUnsavedGuard.classList.remove('hidden');
     fileNewForm.classList.add('hidden');
@@ -462,36 +622,284 @@ async function openFile(rel, { force = false } = {}) {
   pendingOpenFile = null;
   fileUnsavedGuard.classList.add('hidden');
 
+  if (docs.has(rel)) {
+    activateTab(rel);
+    return true;
+  }
+
+  const doc = createMapDoc(rel);
   try {
     setStatus('loading…');
-    activeFile = rel;
-    ws.setActiveFile(rel);
-    fileNameEl.textContent = pathBasename(rel);
-    renderFileList();
-
-    const { text } = await loadFileContent();
-    frontmatter = '';
-    selectedId = null;
-    isolateActive = false;
+    const { text } = await loadFileContent(doc);
+    doc.frontmatter = '';
+    doc.selectedId = null;
+    doc.isolateActive = false;
 
     const parsed = parseMarkdown(text);
-    frontmatter = parsed.frontmatter;
-    reloadMap(parsed.root);
-    dirty = false;
-    decorate();
-    await ws.persistActiveFile(rel);
-    setStatus('ready');
-    return true;
+    doc.frontmatter = parsed.frontmatter;
+    ensureExpanded(parsed.root);
+    doc.mind.init({ nodeData: parsed.root });
+    doc.setupObserver();
+    doc.dirty = false;
+    doc.decorate();
   } catch (err) {
     console.error(err);
+    cleanupFailedDoc(doc);
     setStatus('could not open file', 'error');
     return false;
   }
+
+  docs.set(rel, doc);
+  tabState = openTabReducer(tabState, rel);
+  ws.setActiveFile(rel);
+  fileNameEl.textContent = pathBasename(rel);
+  renderFileList();
+  setDocVisibility();
+  await ws.persistActiveFile(rel).catch(() => {});
+  persistSession();
+  renderTabBar();
+  setStatus('ready');
+  return true;
 }
 
-function pathBasename(rel) {
-  const parts = rel.split(/[/\\]/);
-  return parts[parts.length - 1] || rel;
+function cleanupFailedDoc(doc) {
+  clearTimeout(doc.saveTimer);
+  clearInterval(doc.renderPollTimer);
+  doc.observer?.disconnect();
+  doc.mind.destroy?.();
+  doc.el.remove();
+}
+
+function setDocVisibility() {
+  for (const doc of docs.values()) {
+    doc.el.classList.toggle('active', doc.relPath === tabState.activeFile);
+  }
+}
+
+function activateTab(rel) {
+  if (!docs.has(rel)) return;
+  tabState = activateTabReducer(tabState, rel);
+  ws.setActiveFile(rel);
+  ws.persistActiveFile(rel).catch(() => {});
+  const doc = docs.get(rel);
+  fileNameEl.textContent = pathBasename(rel);
+  doc.setupObserver();
+  setDocVisibility();
+  doc.decorate();
+  doc.mind.toCenter();
+  markerPicker.show();
+  renderTabBar();
+  renderFileList();
+  persistSession();
+}
+
+function closeTab(rel) {
+  const doc = docs.get(rel);
+  if (!doc) return;
+  docs.delete(rel);
+  doc.observer?.disconnect();
+  clearTimeout(doc.saveTimer);
+  clearInterval(doc.renderPollTimer);
+  doc.mind.destroy?.();
+  doc.el.remove();
+  tabState = closeTabReducer(tabState, rel);
+  setDocVisibility();
+  if (tabState.activeFile) {
+    const next = docs.get(tabState.activeFile);
+    if (next) {
+      fileNameEl.textContent = pathBasename(next.relPath);
+      next.setupObserver();
+      next.decorate();
+      next.mind.toCenter();
+      markerPicker.show();
+    }
+  } else {
+    fileNameEl.textContent = '';
+    markerPicker.hide();
+  }
+  renderTabBar();
+  renderFileList();
+  persistSession();
+}
+
+function cycleTabs(dir) {
+  const next = cycleTabReducer(tabState, dir);
+  if (next.activeFile !== tabState.activeFile) {
+    activateTab(next.activeFile);
+  }
+}
+
+function detachTab(rel) {
+  const url = `${location.origin}${location.pathname}?file=${encodeURIComponent(rel)}`;
+  window.open(url, '_blank', 'noopener');
+}
+
+function renderTabBar() {
+  if (!tabBarEl) return;
+  tabBarEl.innerHTML = '';
+  for (const rel of tabState.openTabs) {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (rel === tabState.activeFile ? ' active' : '');
+    tab.dataset.rel = rel;
+    tab.dataset.testid = 'map-tab';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', String(rel === tabState.activeFile));
+
+    const label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = pathBasename(rel);
+    label.title = rel;
+
+    const detach = document.createElement('button');
+    detach.type = 'button';
+    detach.className = 'tab-action tab-detach';
+    detach.dataset.testid = 'tab-detach';
+    detach.title = 'Open in new window';
+    detach.setAttribute('aria-label', `Open ${rel} in a new window`);
+    detach.textContent = '↗';
+    detach.addEventListener('click', (e) => {
+      e.stopPropagation();
+      detachTab(rel);
+    });
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'tab-action tab-close';
+    close.dataset.testid = 'tab-close';
+    close.title = 'Close tab';
+    close.setAttribute('aria-label', `Close ${rel}`);
+    close.textContent = '×';
+    close.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(rel);
+    });
+
+    tab.addEventListener('click', () => {
+      if (rel !== tabState.activeFile) activateTab(rel);
+    });
+
+    tab.append(label, detach, close);
+    tabBarEl.appendChild(tab);
+  }
+  tabBarEl.classList.toggle('hidden', !tabState.openTabs.length);
+}
+
+function persistSession() {
+  if (!ws.isConnected()) return;
+  ws.persistSession({
+    openTabs: tabState.openTabs,
+    activeFile: tabState.activeFile,
+  }).catch(() => {});
+}
+
+function initBroadcastChannel() {
+  if (typeof BroadcastChannel === 'undefined') return;
+  broadcastChannel = new BroadcastChannel('sprint-map');
+  broadcastChannel.onmessage = (e) => {
+    const { type, file, from } = e.data || {};
+    if (type !== 'saved' || !file || from === windowId) return;
+    handleExternalSave(file);
+  };
+}
+
+function broadcastSave(file) {
+  broadcastChannel?.postMessage({ type: 'saved', file, from: windowId });
+}
+
+async function handleExternalSave(file) {
+  const doc = docs.get(file);
+  if (!doc) return;
+  if (doc.dirty) {
+    setStatus(
+      `Saved by another window — ${pathBasename(file)} has unsaved local changes`,
+      'error'
+    );
+    return;
+  }
+  setStatus('reloading from disk…');
+  try {
+    const text = await ws.readMarkdown(file);
+    const parsed = parseMarkdown(text);
+    doc.frontmatter = parsed.frontmatter;
+    doc.selectedId = null;
+    doc.isolateActive = false;
+    ensureExpanded(parsed.root);
+    doc.mind.refresh({ nodeData: parsed.root });
+    doc.dirty = false;
+    doc.decorate();
+    setStatus('reloaded', 'saved');
+    rebuildLinkIndex();
+  } catch (err) {
+    console.error(err);
+    setStatus('reload error', 'error');
+  }
+}
+
+function expandPath(node) {
+  const stack = [];
+  let cur = node;
+  while (cur) {
+    stack.unshift(cur);
+    cur = cur.parent || null;
+  }
+  for (const n of stack) n.expanded = true;
+}
+
+function selectNodeInDoc(doc, node) {
+  expandPath(node);
+  doc.mind.refresh?.();
+  const el = doc.mind.findEle?.(node.id);
+  if (el) {
+    doc.mind.selectNode(el);
+    doc.selectedId = node.id;
+    doc.decorate();
+    doc.mind.toCenter();
+    return true;
+  }
+  doc.mind.toCenter();
+  return false;
+}
+
+async function navigateToTarget(target) {
+  if (!target?.internal || !target.file) return;
+  // Only navigate to maps that actually exist in the workspace.
+  const files = await ws.listFiles();
+  if (!files.includes(target.file)) {
+    setStatus(`Map not found: ${target.file}`, 'error');
+    return;
+  }
+  const ok = await openTab(target.file);
+  if (!ok) return;
+  const doc = docs.get(target.file);
+  if (!doc) return;
+  const resolved = resolveNodeRef(doc.mind.nodeData, target.nodeRef);
+  if (!resolved.node || resolved.broken) {
+    setStatus(`Link target not found in ${pathBasename(target.file)}`, 'error');
+    doc.mind.toCenter();
+    return;
+  }
+  selectNodeInDoc(doc, resolved.node);
+}
+
+async function rebuildLinkIndex() {
+  try {
+    linkIndex = await indexWorkspace(ws);
+  } catch (err) {
+    console.error(err);
+  }
+  renderBacklinks();
+}
+
+function renderBacklinks() {
+  const doc = currentDoc();
+  if (!doc || !backlinksPanel.isVisible()) return;
+  const selected = doc.getSelectedNode();
+  backlinksPanel.render({
+    index: linkIndex,
+    file: doc.relPath,
+    nodeId: selected?.id ?? null,
+    nodeTopic: selected?.topic,
+  });
 }
 
 async function refreshFileList() {
@@ -501,9 +909,12 @@ async function refreshFileList() {
     return;
   }
   workspaceFiles = await ws.listFiles();
-  if (!activeFile) {
+  if (!tabState.activeFile) {
     const info = await ws.getInfo();
-    activeFile = info.activeFile || info.defaultFile;
+    const rel = info.activeFile || info.defaultFile;
+    if (rel && !docs.has(rel)) {
+      tabState = openTabReducer(tabState, rel);
+    }
   }
   renderFileList();
 }
@@ -540,10 +951,10 @@ function renderFileList() {
       btn.type = 'button';
       btn.textContent = rel;
       btn.dataset.testid = 'file-list-item';
-      btn.classList.toggle('active', rel === activeFile);
+      btn.classList.toggle('active', rel === tabState.activeFile);
       btn.addEventListener('click', () => {
-        if (rel === activeFile) return;
-        openFile(rel).catch(console.error);
+        if (rel === tabState.activeFile) return;
+        openTab(rel).catch(console.error);
       });
       btn.addEventListener('dblclick', (e) => {
         e.preventDefault();
@@ -576,8 +987,23 @@ async function commitRenameFile(from, to) {
   try {
     const rel = await ws.renameFile(from, next);
     await refreshFileList();
-    if (activeFile === from) {
-      await openFile(rel, { force: true });
+    if (docs.has(from)) {
+      const doc = docs.get(from);
+      docs.delete(from);
+      doc.relPath = rel;
+      doc.el.dataset.rel = rel;
+      docs.set(rel, doc);
+      tabState = {
+        ...tabState,
+        openTabs: tabState.openTabs.map((r) => (r === from ? rel : r)),
+        activeFile: tabState.activeFile === from ? rel : tabState.activeFile,
+      };
+      renderTabBar();
+      if (tabState.activeFile === rel) {
+        fileNameEl.textContent = pathBasename(rel);
+        activateTab(rel);
+      }
+      persistSession();
     }
   } catch (err) {
     console.error(err);
@@ -603,7 +1029,7 @@ async function createNewFile(name) {
     const rel = await ws.createFile(trimmed);
     showNewFileForm(false);
     await refreshFileList();
-    await openFile(rel, { force: true });
+    await openTab(rel, { force: true });
   } catch (err) {
     console.error(err);
     setStatus(err.message || 'create error', 'error');
@@ -616,7 +1042,7 @@ async function importFile(file) {
     const buf = await file.arrayBuffer();
     const data = await ws.importBinary(file.name, buf);
     await refreshFileList();
-    await openFile(data.file, { force: true });
+    await openTab(data.file, { force: true });
     setStatus('imported', 'saved');
   } catch (err) {
     console.error(err);
@@ -655,19 +1081,25 @@ function toggleExportPanel() {
 }
 
 async function exportPng() {
-  const blob = await mind.exportPng();
-  const stem = pathBasename(activeFile || 'mindmap').replace(/\.md$/i, '');
+  const doc = currentDoc();
+  if (!doc) return;
+  const blob = await doc.mind.exportPng();
+  const stem = pathBasename(doc.relPath || 'mindmap').replace(/\.md$/i, '');
   downloadBlob(blob, `${stem}.png`);
 }
 
 async function exportSvg() {
-  const blob = mind.exportSvg();
-  const stem = pathBasename(activeFile || 'mindmap').replace(/\.md$/i, '');
+  const doc = currentDoc();
+  if (!doc) return;
+  const blob = doc.mind.exportSvg();
+  const stem = pathBasename(doc.relPath || 'mindmap').replace(/\.md$/i, '');
   downloadBlob(blob, `${stem}.svg`);
 }
 
 function openMarkmapHtml() {
-  ws.getMarkmapHtml(activeFile)
+  const doc = currentDoc();
+  if (!doc) return;
+  ws.getMarkmapHtml(doc.relPath)
     .then((html) => {
       if (!html) {
         setStatus('markmap not found — save first', 'error');
@@ -686,65 +1118,57 @@ function openMarkmapHtml() {
 
 async function loadInitialData() {
   const info = await ws.getInfo();
-  activeFile = info.activeFile || info.defaultFile;
-  ws.setActiveFile(activeFile);
-  fileNameEl.textContent = info.markdownName || pathBasename(activeFile || '');
+  const files = info.files || [];
+  const urlFile = new URLSearchParams(location.search).get('file');
+
+  let openTabs;
+  if (urlFile && files.includes(urlFile)) {
+    openTabs = [urlFile];
+  } else {
+    openTabs = (info.openTabs || []).filter((r) => files.includes(r));
+  }
+
+  let active = urlFile || info.activeFile || info.defaultFile || null;
+  if (active && !openTabs.includes(active)) openTabs.push(active);
+  if (!openTabs.length && active) openTabs.push(active);
+
   updateWorkspaceLabel();
   updateFolderPickerUi();
 
-  if (!activeFile) {
+  if (!active) {
     setStatus('no markdown files in folder', 'error');
     await refreshFileList();
     return;
   }
 
-  const { text } = await loadFileContent();
+  tabState = createTabState({ openTabs, activeFile: active });
 
-  const parsed = parseMarkdown(text);
-  frontmatter = parsed.frontmatter;
-  ensureExpanded(parsed.root);
-  mind.init({ nodeData: parsed.root });
+  for (const rel of openTabs) {
+    const doc = createMapDoc(rel);
+    docs.set(rel, doc);
+    const { text } = await loadFileContent(doc);
+    const parsed = parseMarkdown(text);
+    doc.frontmatter = parsed.frontmatter;
+    doc.selectedId = null;
+    doc.isolateActive = false;
+    ensureExpanded(parsed.root);
+    doc.mind.init({ nodeData: parsed.root });
+    doc.setupObserver();
+    doc.dirty = false;
+    doc.decorate();
+  }
+
+  setDocVisibility();
+  fileNameEl.textContent = pathBasename(active);
+  renderTabBar();
   bindHotkeys();
-  decorate();
   markerPicker.show();
   await refreshFileList();
   document.getElementById('map')?.classList.remove('map-not-ready');
-  await trackRecentFile(activeFile);
+  await trackRecentFile(active);
   await updateDriveSyncUi();
   setStatus('ready');
-}
-
-function setupObserver() {
-  observer = new MutationObserver(() => decorate());
-}
-
-function setupBus() {
-  mind.bus.addListener('selectNodes', (nodes) => {
-    if (nodes?.length) {
-      selectedId = nodes[nodes.length - 1]?.id ?? null;
-      decorate();
-      focusMapIfNotEditing();
-    }
-  });
-
-  mind.bus.addListener('selectNewNode', (nodeObj) => {
-    selectedId = nodeObj?.id ?? null;
-    decorate();
-    focusMapIfNotEditing();
-  });
-
-  mind.bus.addListener('unselectNodes', () => {
-    if (!mind.currentNodes?.length) {
-      selectedId = null;
-      decorate();
-    }
-  });
-
-  mind.bus.addListener('operation', (op) => {
-    if (op?.name === 'beginEdit') focusInputBox();
-    scheduleDraftSave();
-  });
-  mind.bus.addListener('expandNode', scheduleDraftSave);
+  rebuildLinkIndex();
 }
 
 let hotkeysBound = false;
@@ -753,16 +1177,18 @@ function bindHotkeys() {
   if (hotkeysBound) return;
   hotkeysBound = true;
 
-  mind.container.addEventListener(
+  mapEl.addEventListener(
     'keydown',
     (e) => {
-      if (handleTypeToEdit(e, mind, isEditing)) return;
-      if (handlePriorityHotkey(e)) return;
+      const doc = currentDoc();
+      if (!doc) return;
+      if (handleTypeToEdit(e, doc.mind, isEditing)) return;
+      if (handlePriorityHotkey(e, doc)) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         e.stopImmediatePropagation();
-        saveMarkdown();
+        doc.saveMarkdown();
         return;
       }
 
@@ -773,7 +1199,7 @@ function bindHotkeys() {
       ) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        togglePriorityFilter();
+        doc.togglePriorityFilter();
       }
 
       if (
@@ -790,38 +1216,47 @@ function bindHotkeys() {
   );
 
   document.addEventListener('keydown', (e) => {
+    const doc = currentDoc();
+    if (!doc) return;
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
+      e.preventDefault();
+      cycleTabs(e.shiftKey ? -1 : 1);
+      return;
+    }
+
     if (e.key === 'F1') {
       e.preventDefault();
-      mind.toCenter();
+      doc.mind.toCenter();
     }
 
     if (e.key === 'F6' && !isEditing()) {
       e.preventDefault();
       if (e.shiftKey) {
-        exitFocusMode();
+        doc.exitFocusMode();
       } else {
-        enterFocusMode();
+        doc.enterFocusMode();
       }
     }
 
-    if (e.code === 'Space' && !isEditing() && mind.container.contains(e.target)) {
-      const nodeEl = mind.currentNode;
+    if (e.code === 'Space' && !isEditing() && doc.mind.container.contains(e.target)) {
+      const nodeEl = doc.mind.currentNode;
       if (nodeEl) {
         e.preventDefault();
-        mind.expandNode(nodeEl);
-        decorate();
+        doc.mind.expandNode(nodeEl);
+        doc.decorate();
       }
     }
   });
 }
 
-function handlePriorityHotkey(e) {
+function handlePriorityHotkey(e, doc) {
   if (isEditing()) return false;
 
   const priorityValue = parsePriorityHotkey(e);
   if (priorityValue === undefined) return false;
 
-  if (!setPriority(priorityValue)) return false;
+  if (!doc.setPriority(priorityValue)) return false;
 
   e.preventDefault();
   e.stopImmediatePropagation();
@@ -838,35 +1273,10 @@ function isEditing() {
   );
 }
 
-function togglePriorityFilter() {
-  const selected = getSelectedNodeObj();
-  if (!selected?.priority || selected.id === 'root') return;
-  isolateActive = !isolateActive;
-  decorate();
-}
-
-function expandAll() {
-  walkNodes(mind.nodeData, (node) => {
-    node.expanded = true;
-  });
-  mind.refresh();
-  decorate();
-  scheduleDraftSave();
-}
-
-function collapseAll() {
-  walkNodes(mind.nodeData, (node, depth) => {
-    if (depth > 0) node.expanded = false;
-  });
-  mind.refresh();
-  decorate();
-  scheduleDraftSave();
-}
-
 document.getElementById('btn-open-folder').addEventListener('click', () => {
   openFolderPicker().catch(console.error);
 });
-btnExitFocus.addEventListener('click', exitFocusMode);
+btnExitFocus.addEventListener('click', () => currentDoc()?.exitFocusMode());
 btnReconnect.addEventListener('click', () => {
   ws.reconnectSavedFolder()
     .then(() => {
@@ -890,10 +1300,18 @@ btnReconnectDismiss.addEventListener('click', () => {
     })
     .catch(console.error);
 });
-document.getElementById('btn-save').addEventListener('click', saveMarkdown);
-document.getElementById('btn-expand-all').addEventListener('click', expandAll);
-document.getElementById('btn-collapse-all').addEventListener('click', collapseAll);
-document.getElementById('btn-fit').addEventListener('click', () => mind.toCenter());
+document.getElementById('btn-save').addEventListener('click', () =>
+  currentDoc()?.saveMarkdown()
+);
+document.getElementById('btn-expand-all').addEventListener('click', () =>
+  currentDoc()?.expandAll()
+);
+document.getElementById('btn-collapse-all').addEventListener('click', () =>
+  currentDoc()?.collapseAll()
+);
+document.getElementById('btn-fit').addEventListener('click', () =>
+  currentDoc()?.mind.toCenter()
+);
 fileNameEl.addEventListener('click', toggleFilePanel);
 document.getElementById('btn-file-close').addEventListener('click', () => filePanel.classList.add('hidden'));
 document.getElementById('btn-new-file').addEventListener('click', () => showNewFileForm(true));
@@ -914,7 +1332,7 @@ document.getElementById('btn-switch-anyway').addEventListener('click', () => {
   if (!pendingOpenFile) return;
   const rel = pendingOpenFile;
   pendingOpenFile = null;
-  openFile(rel, { force: true }).catch(console.error);
+  openTab(rel, { force: true }).catch(console.error);
 });
 document.getElementById('btn-cancel-switch').addEventListener('click', () => {
   pendingOpenFile = null;
@@ -931,8 +1349,14 @@ document.getElementById('btn-export-close').addEventListener('click', () => expo
 document.getElementById('btn-export-png').addEventListener('click', () => exportPng().catch(console.error));
 document.getElementById('btn-export-svg').addEventListener('click', () => exportSvg());
 document.getElementById('btn-open-markmap').addEventListener('click', openMarkmapHtml);
-filterBtn.addEventListener('click', togglePriorityFilter);
+filterBtn.addEventListener('click', () => currentDoc()?.togglePriorityFilter());
 btnMarkers.addEventListener('click', () => markerPicker.toggle());
+btnBacklinks.addEventListener('click', () => {
+  backlinksPanel.toggle();
+  if (backlinksPanel.isVisible()) {
+    renderBacklinks();
+  }
+});
 btnEnableDrive?.addEventListener('click', () => enableDriveSync().catch(console.error));
 btnSyncDrive?.addEventListener('click', () => syncActiveFileToDrive().catch(console.error));
 btnDriveSignout?.addEventListener('click', () => signOutDriveSync().catch(console.error));
@@ -953,15 +1377,16 @@ installBtn.addEventListener('click', async () => {
 });
 
 window.addEventListener('beforeunload', (e) => {
-  if (dirty) {
-    e.preventDefault();
-    e.returnValue = '';
+  for (const doc of docs.values()) {
+    if (doc.dirty) {
+      e.preventDefault();
+      e.returnValue = '';
+      break;
+    }
   }
 });
 
-
-setupObserver();
-setupBus();
+initBroadcastChannel();
 
 function showWelcomeForDisconnectedFolder() {
   fileNameEl.textContent = 'Files';

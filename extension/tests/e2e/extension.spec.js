@@ -91,6 +91,29 @@ test.describe('AuraMindmap Chrome Extension', () => {
     }
   });
 
+  test('cross-map link UI surfaces render in the editor shell', async () => {
+    const page = await context.newPage();
+    try {
+      await page.goto(editorPageUrl(extensionId));
+      await expect(page.getByTestId('status')).not.toHaveText('loading…', {
+        timeout: 15_000,
+      });
+
+      // Backlinks toggle button.
+      await expect(page.getByTestId('btn-backlinks')).toBeVisible();
+
+      // The link picker modal and backlinks panel containers exist.
+      await expect(page.getByTestId('link-picker')).toHaveCount(1);
+      await expect(page.getByTestId('backlinks-panel')).toHaveCount(1);
+
+      // Opening the backlinks panel reveals the (empty) state without a folder.
+      await page.getByTestId('btn-backlinks').click();
+      await expect(page.getByTestId('backlinks-panel')).toBeVisible();
+    } finally {
+      await page.close();
+    }
+  });
+
   test('popup page renders Open AuraMindmap button', async () => {
     const page = await context.newPage();
     try {

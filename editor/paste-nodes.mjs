@@ -465,12 +465,20 @@ export function initPasteChoiceDialog(rootEl) {
     }
 
     if (btnChildren) {
-      const showChildren = Boolean(analysis.hasStructure);
+      // Offer "as children" whenever we have multiple items: for structured
+      // outlines (nested) and for plain multi-line text (flat children below
+      // the current node). Only hide it at the root when there's no structure,
+      // since the primary button already adds root children there.
+      const flatChildren =
+        !isRoot && !analysis.hasStructure && Boolean(analysis.lines?.length);
+      const showChildren = Boolean(analysis.hasStructure) || flatChildren;
       btnChildren.hidden = !showChildren;
       if (showChildren) {
         btnChildren.textContent = isRoot
           ? `Add ${count} as nested outline`
-          : `Add ${count} as child outline`;
+          : analysis.hasStructure
+            ? `Add ${count} as child outline`
+            : `Add ${count} as children`;
       }
     }
 
