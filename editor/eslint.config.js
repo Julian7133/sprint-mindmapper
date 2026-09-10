@@ -69,6 +69,10 @@ export default [
       'priority-hotkeys.mjs',
       'type-to-edit.mjs',
       'paste-nodes.mjs',
+      'link-picker.mjs',
+      'backlinks-panel.mjs',
+      'link-target.mjs',
+      'link-index.mjs',
     ],
     languageOptions: {
       globals: globals.browser,

@@ -1,0 +1,39 @@
+{
+  "name": "auramindmap-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AuraMindmap native macOS wrapper (Tauri v2) sharing the browser editor frontend",
+  "type": "module",
+  "scripts": {
+    "stage": "node scripts/stage.mjs",
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && tauri dev",
+    "build:app": "npm run build && tauri build",
+    "build:app:release": "npm run build && bash release/release.sh",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "tauri": "tauri",
+    "icons": "tauri icon src-tauri/icons/app-icon.png"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.3",
+    "@tauri-apps/plugin-opener": "^2.5.5",
+    "@tauri-apps/plugin-store": "^2.4.4",
+    "fast-xml-parser": "^5.2.5",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "d3": "^7.9.0",
+    "esbuild": "^0.25.12",
+    "markmap-common": "^0.18.7",
+    "markmap-lib": "^0.18.10",
+    "markmap-view": "^0.18.7"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "fsevents@2.3.3": true,
+    "fsevents@2.3.2": true
+  }
+}

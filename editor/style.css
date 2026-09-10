@@ -17,6 +17,12 @@ body {
   background: #f3f4f6;
 }
 
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -25,6 +31,7 @@ body {
   padding: 10px 16px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
+  flex: none;
 }
 
 .toolbar-left {
@@ -334,8 +341,83 @@ body {
 }
 
 #map {
-  height: calc(100vh - 57px);
   background: #fff;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  overflow-x: auto;
+  flex: none;
+}
+
+.tab-bar.hidden {
+  display: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 220px;
+  user-select: none;
+}
+
+.tab.active {
+  background: #eef4ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-action {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tab-action:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tab-close {
+  font-size: 14px;
+}
+
+.map-doc {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
+.map-doc.active {
+  visibility: visible;
 }
 
 /* MindElixir drag ghost must not block elementFromPoint drop targeting */
@@ -931,3 +1013,236 @@ body {
   cursor: pointer;
 }
 
+
+/* --- Backlinks panel (M2) --- */
+.backlinks-panel {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 24;
+  width: min(340px, calc(100vw - 48px));
+  max-height: min(60vh, 440px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+}
+
+.backlinks-panel.hidden {
+  display: none;
+}
+
+.backlinks-header {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.backlinks-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.backlinks-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.backlinks-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.backlinks-source {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  margin: 2px 0;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.backlinks-source:hover {
+  background: #f3f4f6;
+}
+
+.backlinks-source-file {
+  color: #1e88e5;
+  font-weight: 600;
+  flex: none;
+  word-break: break-all;
+}
+
+.backlinks-source-topic {
+  color: #374151;
+  word-break: break-word;
+}
+
+/* --- Link picker dialog (M2) --- */
+.link-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 24px;
+}
+
+.link-picker.hidden {
+  display: none;
+}
+
+.link-picker-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.link-picker-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.link-picker-tab {
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.link-picker-tab.active {
+  background: #1e88e5;
+  border-color: #1e88e5;
+  color: #fff;
+}
+
+.link-picker-panel {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+}
+
+.link-picker-panel.hidden {
+  display: none;
+}
+
+.link-picker-url,
+.link-picker-map {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.link-picker-nodes {
+  margin-top: 10px;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.link-picker-node {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 5px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.link-picker-node:hover {
+  background: #f3f4f6;
+}
+
+.link-picker-node.selected {
+  background: #e8f0fe;
+  font-weight: 600;
+}
+
+.link-picker-node-whole {
+  font-weight: 600;
+  color: #1e88e5;
+}
+
+.link-picker-empty {
+  margin: 0;
+  padding: 10px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.link-picker-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.link-picker-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.link-picker-apply {
+  background: #1e88e5 !important;
+  border-color: #1e88e5 !important;
+  color: #fff;
+}
+
+.link-picker-clear {
+  margin-right: auto;
+  color: #dc2626;
+}
+
+/* --- Link picker: label + accessible error region --- */
+.link-picker-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.link-picker-error {
+  width: 100%;
+  max-width: 420px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+
+.link-picker-error.hidden {
+  display: none;
+}

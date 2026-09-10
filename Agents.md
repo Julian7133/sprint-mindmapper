@@ -2,7 +2,7 @@
 
 Cross-provider reference for all AI agents (Claude, Cursor, OpenCode, etc.) working on this project. **Read this before touching any code.** This is maintained by the primary orchestrating agent; do not overwrite without updating the timestamp.
 
-_Last updated: 2026-07-07_
+_Last updated: 2026-09-08_
 
 ---
 
@@ -203,18 +203,65 @@ Protocol handoff: `auramindmap-edit://drive/<fileId>` (registered via `protocol_
 
 ---
 
+## Native App Architecture (Phase 3 — Tauri)
+
+```
+native-app/
+  src/                     # native-only frontend sources
+    workspace-native.mjs     # full Workspace Interface Contract impl (Tauri)
+    native-core.mjs          # pure folder-file logic (unit-tested, no Tauri)
+    native-paths.mjs         # pure rel-path/root resolution helpers
+    native-store.mjs         # plugin-store wrapper (meta + drafts)
+    native-bridge.mjs        # menu/window/opener integration, loaded before app.js
+  scripts/
+    stage.mjs                # copies shared editor/extension modules into dist/ + writes index.html
+    build-assets.mjs         # generates dist/embedded-assets.mjs (markmap CDN inlining)
+    build.mjs                # esbuild-bundles workspace-native + native-bridge
+  src-tauri/                 # Rust shell (fs/menu/window commands, capabilities, icons)
+  release/                   # macOS signing / notarization / DMG scaffolding
+  tests/unit/                # Node unit tests for core/paths/staging
+```
+
+Key choices:
+- **No manual divergence**: `scripts/stage.mjs` copies the canonical shared
+  modules from `../editor/` (app.js, tab-state, link-*, markers, paste-nodes,
+  markmap-convert, …) and the single in-browser markmap renderer from
+  `../extension/editor/markmap-render.mjs`. `app.js` is reused **unchanged**.
+- The workspace swap point is the real re-export file `dist/workspace.mjs` →
+  `./workspace-native.bundle.js` (MV3/CSP-safe pattern, like the extension).
+- `workspace-native.mjs` reports `mode === 'folder'` + `isNative()`, so app.js
+  needs no changes. File I/O is thin Rust commands; meta/drafts persist via
+  `plugin-store` (shared across windows → multi-window model).
+- Markmap rendering reuses the in-browser markmap bundle (no Node sidecar).
+- The native bridge (`native-bridge.bundle.js`) is injected into the staged
+  index.html **before** app.js: it rewrites the URL for detached windows
+  (from Rust's injected `window.__amDetachFile`) and dispatches File-menu
+  actions to existing DOM controls.
+- Native menu: File → New Map (Cmd+N) / Open Folder… (Cmd+O) / New Window
+  (Cmd+Shift+N). New/detached windows are created in Rust (`open_new_window`)
+  — no frontend window permissions needed.
+
+Notes / blockers:
+- The Tauri 2.11.5 source passes `cargo check`; an Apple Silicon release build
+  produces an unsigned `.app` and `.dmg`, and the app passes a launch smoke test.
+- Signing/notarization is env-driven (`native-app/release/`); an Apple Developer
+  identity is still required and no secrets are committed.
+
+---
+
 ## Test Setup
 
 - **Unit:** `editor/tests/unit/` — Vitest; run with `npm run test` in `editor/`
 - **E2E:** `editor/tests/e2e/` — Playwright; run with `npm run test:e2e`
 - **All:** `npm run test:all`
 - Extension e2e: use `--load-extension` Playwright flag (task 1.9)
+- **Native unit:** `native-app/tests/unit/` — `node --test`; run with `npm test` in `native-app/` (or `npm run native:test` at root). Covers `native-core`, `native-paths`, and `stage` logic.
 
 ---
 
 ## Open Decisions (as of 2026-07-07)
 
-- [ ] App name: AuraMindmap / MapSprint / FlowMap (decide before manifest.json)
+- [x] App name: AuraMindmap
 - [x] Hosting: Netlify
 - [x] File extension: `.md` only (no custom `.smm`)
 - [ ] Drive sync (1.7): optional, off by default in v1

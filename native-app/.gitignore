@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+**/.DS_Store
+
+# Node
+node_modules/
+
+# Generated frontend staging / build output
+/dist/
+/build/
+
+# Tauri generated schema (created by tauri-build on first compile)
+/src-tauri/gen/
+
+# Build artifacts
+/src-tauri/target/
+/src-tauri/icons/**/*.png.bak
+
+# Signing credentials (never commit)
+.release-env
+release/.release-env
+*.p12
+*.key
+
+# Test artifacts
+/test-results/
+/playwright-report/

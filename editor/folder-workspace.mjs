@@ -207,5 +207,13 @@ export function createFolderWorkspace() {
     getActiveFile() {
       return meta?.activeFile || null;
     },
+
+    setOpenTabs(relPaths) {
+      if (meta) meta.openTabs = [...relPaths];
+    },
+
+    getOpenTabs() {
+      return meta?.openTabs || [];
+    },
   };
 }

@@ -559,6 +559,7 @@ describe('createWorkspace', () => {
         mode: 'folder',
         folderName: 'MyProject',
         activeFile: 'alpha.md',
+        openTabs: ['alpha.md'],
         markdownName: 'alpha.md',
         draftExists: false,
         files: ['alpha.md', 'zebra.md'],
@@ -586,6 +587,28 @@ describe('createWorkspace', () => {
       const info = await ws.getInfo();
 
       expect(info.draftExists).toBe(false);
+    });
+
+    it('persists and restores the open-tab session', async () => {
+      const root = dir('Project', {
+        'a.md': file('a.md', '# A\n'),
+        'b.md': file('b.md', '# B\n'),
+      });
+      const ws = createWorkspace();
+      await openPicker(ws, root);
+
+      await ws.persistSession({
+        openTabs: ['a.md', 'b.md'],
+        activeFile: 'b.md',
+      });
+
+      const saved = await loadSavedFolderWorkspace();
+      expect(saved.meta.openTabs).toEqual(['a.md', 'b.md']);
+      expect(saved.meta.activeFile).toBe('b.md');
+
+      const info = await ws.getInfo();
+      expect(info.openTabs).toEqual(['a.md', 'b.md']);
+      expect(info.activeFile).toBe('b.md');
     });
   });
 });
