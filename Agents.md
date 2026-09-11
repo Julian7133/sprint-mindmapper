@@ -15,10 +15,16 @@ The codebase is indexed in `codebase-memory-mcp`. **Always query it first** befo
 - Tools: `search_graph`, `get_code_snippet`, `search_code`, `get_architecture`, `trace_path`
 
 Preferred lookup order:
-1. `search_graph(query=...)` — find functions/classes by name or natural language
+1. `search_graph(query=..., project="Users-julianberlow-dev-sprint-mindmap")` — find functions/classes by name or natural language
 2. `get_code_snippet(qualified_name=...)` — read exact source for a known symbol
 3. `search_code(pattern=...)` — text/regex search with graph enrichment
 4. Only then: Read the file directly
+
+**Do NOT call `list_projects`** — it dumps the entire registry as one ~56k-char
+single-line JSON blob and overflows the tool-result token cap. The project name
+is already known (above); pass it as `project=` to the scoped tools. A
+graph-tool failure is never a reason to fall back to blind grep/read — fix the
+query (usually: scope it to the project) and retry.
 
 ---
 
@@ -247,6 +253,26 @@ Notes / blockers:
 - Signing/notarization is env-driven (`native-app/release/`); an Apple Developer
   identity is still required and no secrets are committed.
 
+### Multi-tab / MindElixir gotchas (learned the hard way — do NOT repeat)
+- **`.map-doc` MUST stay `position: absolute !important; inset: 0 !important`.**
+  MindElixir's constructor sets an inline `el.style.position = "relative"` on the
+  container element (vendor MindElixir.js). Without `!important`, that inline style
+  wins over the stylesheet, `.map-doc` collapses to content height, and the
+  per-tab containers **stack vertically in normal flow instead of overlapping** —
+  so every tab after the first lands a full map-height below the viewport and
+  renders blank. This is **size-dependent, not engine-specific**: small maps fit
+  the viewport and hide the bug (so a tiny-fixture "root on screen" assertion
+  passes while the packaged app is broken); real-sized maps expose it. The
+  `!important` rule also gives `.map-container { height:100% }` a bounded box so it
+  clips/pans instead of growing. Lives in `editor/style.css` (staged into the
+  native app) AND `extension/editor/style.css` — keep both, and keep `#map`
+  `position: relative` so `.map-doc` sizes against it.
+- Guard it with a **large map** in e2e (see `native-app/tests/e2e/tabs.e2e.js`):
+  assert the active `.map-doc` height ≈ viewport (not content) and its `me-root`
+  is on screen. A small-fixture visibility check is NOT enough.
+- `openTab()` and `activateTab()` both `toCenter()` after making a tab visible —
+  keep them in parity (`editor/app.js` + `extension/editor/app.js`).
+
 ---
 
 ## Test Setup
@@ -256,6 +282,22 @@ Notes / blockers:
 - **All:** `npm run test:all`
 - Extension e2e: use `--load-extension` Playwright flag (task 1.9)
 - **Native unit:** `native-app/tests/unit/` — `node --test`; run with `npm test` in `native-app/` (or `npm run native:test` at root). Covers `native-core`, `native-paths`, and `stage` logic.
+- **Native e2e:** `native-app/tests/e2e/` — Playwright **WebKit** (closest engine
+  to the app's WKWebView); run with `npm run test:e2e` in `native-app/`. It drives
+  the REAL staged frontend (`dist/`, built first) with the Tauri IPC layer shimmed
+  in-page (`tests/e2e/tauri-mock.js` installs `window.__TAURI_INTERNALS__` over an
+  in-memory FS + store; seeded via `setup.js`). **No Tauri/Rust build, no
+  tauri-driver, no Linux** — runs on macOS and on stock `ubuntu-latest`
+  (`npx playwright install --with-deps webkit`; CI job `native-e2e`).
+  - Do NOT reach for Tauri WebDriver: it has no macOS support and Linux CI would
+    use WebKitGTK (a different engine) — unreliable and doesn't cover native.
+  - **Reproduce layout/render bugs with realistic inputs.** The blank-second-tab
+    bug did NOT reproduce with tiny fixtures (small maps fit the viewport), which
+    gave a false green. It reproduced immediately with a LARGE map — see the
+    `tabs.e2e.js` large-map guard that asserts the active `.map-doc` is clamped to
+    the viewport (not content height) and `me-root` is on screen. When a headless
+    assertion passes but the packaged app is still broken, suspect the fixture is
+    too small / unrealistic before assuming "native-runtime-only".
 
 ---
 

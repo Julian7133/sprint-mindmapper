@@ -12,6 +12,7 @@
     "build:app:release": "npm run build && bash release/release.sh",
     "test": "node --test tests/unit/*.test.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "npm run build && playwright test",
     "tauri": "tauri",
     "icons": "tauri icon src-tauri/icons/app-icon.png"
   },
@@ -24,6 +25,7 @@
     "jszip": "^3.10.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tauri-apps/cli": "^2.11.4",
     "d3": "^7.9.0",
     "esbuild": "^0.25.12",

@@ -373,10 +373,27 @@ body {
 #map {
   height: calc(100vh - 57px);
   background: #fff;
+  position: relative; /* containing block for the absolutely-positioned .map-doc tabs */
 }
 
 #map.map-not-ready {
   pointer-events: none;
+}
+
+.map-doc {
+  /* MindElixir sets an inline `position: relative` on this element, which would
+     let the per-tab containers collapse to content height and STACK vertically,
+     pushing every tab after the first below the viewport (blank tab).
+     `!important` beats the inline style so all tabs overlap in the same viewport
+     box; only the .active one is shown. Also gives `.map-container{height:100%}`
+     a bounded height so it clips/pans instead of growing to content. */
+  position: absolute !important;
+  inset: 0 !important;
+  visibility: hidden;
+}
+
+.map-doc.active {
+  visibility: visible;
 }
 
 /* MindElixir drag ghost must not block elementFromPoint drop targeting */

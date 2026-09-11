@@ -655,6 +655,9 @@ async function openTab(rel, { force = false } = {}) {
   fileNameEl.textContent = pathBasename(rel);
   renderFileList();
   setDocVisibility();
+  // Re-center the freshly opened map now that its .map-doc is the visible one,
+  // mirroring activateTab() (the map was initialized while hidden).
+  doc.mind.toCenter();
   await ws.persistActiveFile(rel).catch(() => {});
   persistSession();
   renderTabBar();

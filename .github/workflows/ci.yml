@@ -124,6 +124,52 @@ jobs:
             editor/test-results/
           retention-days: 7
 
+  native-e2e:
+    name: Native-app unit & Playwright e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: native-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: native-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run native unit tests
+        run: npm run test:unit
+
+      # The native e2e drives the real staged frontend (dist/) in WebKit — the
+      # engine closest to the app's WKWebView — with the Tauri IPC shimmed
+      # in-page. No Tauri/Rust build or WebDriver needed; plain ubuntu-latest.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps webkit
+
+      - name: Run native Playwright e2e
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-playwright-report-${{ github.run_number }}
+          path: |
+            native-app/playwright-report/
+            native-app/test-results/
+          retention-days: 7
+
   extension-test:
     name: Extension unit tests
     runs-on: ubuntu-latest

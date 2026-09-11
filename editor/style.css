@@ -411,8 +411,16 @@ body {
 }
 
 .map-doc {
-  position: absolute;
-  inset: 0;
+  /* MindElixir sets an inline `position: relative` on this element in its
+     constructor, which would override a normal stylesheet rule and let the
+     per-tab containers collapse to content height and STACK vertically in
+     normal flow — pushing every tab after the first a full map-height below
+     the viewport (blank tab). `!important` beats the inline style so all tabs
+     stay absolutely positioned and overlap in the same viewport box; only the
+     .active one is shown. This also gives `.map-container { height: 100% }` a
+     bounded height so it clips/pans correctly instead of growing to content. */
+  position: absolute !important;
+  inset: 0 !important;
   visibility: hidden;
 }
 
