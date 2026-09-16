@@ -59,7 +59,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # native-app is a Tauri desktop app; audit its lockfile specifically.
-          file: native-app/src-tauri/Cargo.lock
+          working-directory: native-app/src-tauri
           # RUSTSEC-2024-0429 (glib VariantStrIter unsoundness, GHSA-wrw7-89jp-8q8g):
           # pulled in transitively via Tauri's Linux GTK backend (gtk 0.18 -> glib
           # 0.18). No fix is available yet — muda/webkit2gtk-rs/wry/tauri haven't
