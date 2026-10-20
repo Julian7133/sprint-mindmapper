@@ -5,6 +5,7 @@ name: Dependency audit
 # npm audit is used instead of dependency-review-action because this repo is
 # private (dependency-review needs GitHub Advanced Security on private repos).
 # Dev tooling (vitest, esbuild) is excluded via --omit=dev — it never ships.
+# native-app is Rust/Cargo, so it gets its own cargo-audit job below.
 
 on:
   pull_request:
@@ -28,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [editor, extension]
+        package: [editor, extension, preview-app]
     defaults:
       run:
         working-directory: ${{ matrix.package }}
@@ -41,3 +42,27 @@ jobs:
           node-version: '24'
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+  cargo-audit:
+    name: cargo audit (native-app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Audit Cargo dependencies
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # native-app is a Tauri desktop app; audit its lockfile specifically.
+          working-directory: native-app/src-tauri
+          # RUSTSEC-2024-0429 (glib VariantStrIter unsoundness, GHSA-wrw7-89jp-8q8g):
+          # pulled in transitively via Tauri's Linux GTK backend (gtk 0.18 -> glib
+          # 0.18). No fix is available yet — muda/webkit2gtk-rs/wry/tauri haven't
+          # released a version that adopts gtk-rs 0.19+ (which pulls glib 0.20+).
+          # Tracked as Dependabot alert #25; revisit when upstream catches up.
+          ignore: RUSTSEC-2024-0429
