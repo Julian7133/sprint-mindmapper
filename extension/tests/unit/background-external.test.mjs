@@ -1,78 +1,43 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  PENDING_DRIVE_FILE_KEY,
-  handleExternalMessage,
-  isAllowedExternalOrigin,
-  isOpenDriveFileMessage,
-} from '../../background-external.mjs';
+import { handleExternalMessage, isAllowedExternalOrigin, isOpenDriveFileMessage, MAX_MARKDOWN_LENGTH } from '../../background-external.mjs';
 
-describe('isAllowedExternalOrigin', () => {
-  it('allows preview production origin', () => {
-    expect(isAllowedExternalOrigin('https://preview.auramindmap.com')).toBe(true);
+const valid = { type: 'auramindmap:open-drive-file', fileId: 'drive-file_1', fileName: 'Sprint.md', markdown: '# Sprint\n- Task' };
+const deps = () => ({ storeHandoff: vi.fn(async () => {}), removeHandoff: vi.fn(async () => {}), openEditorWindow: vi.fn(async () => {}) });
+
+describe('external handoff boundary', () => {
+  it.each(['https://aura.berlow.de', 'http://localhost:8888'])('allows only the configured origin: %s', (origin) => {
+    expect(isAllowedExternalOrigin(origin)).toBe(true);
   });
-
-  it('allows localhost with port', () => {
-    expect(isAllowedExternalOrigin('http://localhost:8888')).toBe(true);
+  it.each([undefined, 'null', 'https://evil.example', 'https://aura.berlow.de.evil', 'http://aura.berlow.de', 'https://aura.berlow.de:8443', 'https://aura.berlow.de/', 'http://localhost:8889', 'http://localhost', 'http://127.0.0.1:8888'])('rejects origin %s', (origin) => {
+    expect(isAllowedExternalOrigin(origin)).toBe(false);
   });
-
-  it('rejects other origins', () => {
-    expect(isAllowedExternalOrigin('https://evil.example')).toBe(false);
-    expect(isAllowedExternalOrigin('https://preview.auramindmap.com.evil')).toBe(false);
-    expect(isAllowedExternalOrigin(undefined)).toBe(false);
+  it('accepts only bounded file data and rejects tokens, paths, invalid IDs and extra fields', () => {
+    expect(isOpenDriveFileMessage(valid)).toBe(true);
+    for (const message of [null, [], {}, { ...valid, type: 'other' }, { ...valid, token: 'secret' }, { ...valid, accessToken: 'secret' }, { ...valid, fileId: '../id?x' }, { ...valid, fileName: '../sprint.md' }, { ...valid, fileName: 'a\\sprint.md' }, { ...valid, fileName: 'a\n.md' }, { ...valid, fileName: '.hidden.md' }, { ...valid, markdown: 'x'.repeat(MAX_MARKDOWN_LENGTH + 1) }]) {
+      expect(isOpenDriveFileMessage(message)).toBe(false);
+    }
   });
-});
-
-describe('isOpenDriveFileMessage', () => {
-  it('accepts valid handoff messages', () => {
-    expect(
-      isOpenDriveFileMessage({
-        type: 'auramindmap:open-drive-file',
-        fileId: 'abc123',
-      }),
-    ).toBe(true);
+  it('stores each request separately before opening its own editor', async () => {
+    const d = deps();
+    expect(await handleExternalMessage(valid, { origin: 'https://aura.berlow.de' }, d)).toEqual({ ok: true });
+    expect(await handleExternalMessage(valid, { origin: 'http://localhost:8888' }, d)).toEqual({ ok: true });
+    const [key, payload] = d.storeHandoff.mock.calls[0];
+    expect(key).toMatch(/^driveHandoff:[\da-f-]{36}$/);
+    expect(payload).toEqual(valid);
+    expect(d.openEditorWindow).toHaveBeenCalledWith(key.slice('driveHandoff:'.length));
+    expect(d.storeHandoff.mock.calls[1][0]).not.toBe(key);
+    expect(d.storeHandoff.mock.invocationCallOrder[0]).toBeLessThan(d.openEditorWindow.mock.invocationCallOrder[0]);
   });
-
-  it('rejects invalid messages', () => {
-    expect(isOpenDriveFileMessage(null)).toBe(false);
-    expect(isOpenDriveFileMessage({ type: 'other', fileId: 'x' })).toBe(false);
-    expect(isOpenDriveFileMessage({ type: 'auramindmap:open-drive-file' })).toBe(false);
+  it('rejects invalid messages and origins without side effects', async () => {
+    const d = deps();
+    await handleExternalMessage(valid, { origin: 'https://evil.example' }, d);
+    await handleExternalMessage({ ...valid, token: 'x' }, { origin: 'https://aura.berlow.de' }, d);
+    expect(d.storeHandoff).not.toHaveBeenCalled();
+    expect(d.openEditorWindow).not.toHaveBeenCalled();
   });
-});
-
-describe('handleExternalMessage', () => {
-  it('stores pending file id and opens editor for allowed origin', async () => {
-    const setPendingDriveFileId = vi.fn(async () => {});
-    const openEditorWindow = vi.fn(async () => {});
-
-    const result = await handleExternalMessage(
-      { type: 'auramindmap:open-drive-file', fileId: 'drive-file-1' },
-      { origin: 'https://preview.auramindmap.com' },
-      { setPendingDriveFileId, openEditorWindow },
-    );
-
-    expect(result).toEqual({ ok: true });
-    expect(setPendingDriveFileId).toHaveBeenCalledWith('drive-file-1');
-    expect(openEditorWindow).toHaveBeenCalled();
-  });
-
-  it('rejects disallowed origins', async () => {
-    const setPendingDriveFileId = vi.fn(async () => {});
-    const openEditorWindow = vi.fn(async () => {});
-
-    const result = await handleExternalMessage(
-      { type: 'auramindmap:open-drive-file', fileId: 'drive-file-1' },
-      { origin: 'https://evil.example' },
-      { setPendingDriveFileId, openEditorWindow },
-    );
-
-    expect(result.ok).toBe(false);
-    expect(setPendingDriveFileId).not.toHaveBeenCalled();
-    expect(openEditorWindow).not.toHaveBeenCalled();
-  });
-});
-
-describe('PENDING_DRIVE_FILE_KEY', () => {
-  it('matches workspace consume key', () => {
-    expect(PENDING_DRIVE_FILE_KEY).toBe('pendingDriveFileId');
+  it('cleans up a pending request when opening fails', async () => {
+    const d = deps(); d.openEditorWindow.mockRejectedValue(new Error('denied'));
+    expect((await handleExternalMessage(valid, { origin: 'https://aura.berlow.de' }, d)).ok).toBe(false);
+    expect(d.removeHandoff).toHaveBeenCalledWith(d.storeHandoff.mock.calls[0][0]);
   });
 });

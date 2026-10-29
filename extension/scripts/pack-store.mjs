@@ -15,6 +15,7 @@ if (fs.existsSync(outZip)) fs.unlinkSync(outZip);
 const include = [
   'manifest.json',
   'background.js',
+  'background-external.mjs',
   'popup.html',
   'popup.js',
   'icons',

@@ -6,6 +6,7 @@ import {
   writeDraftKey,
   deleteDraftKey,
 } from './workspace-storage.mjs';
+import { HANDOFF_KEY_PREFIX, isOpenDriveFileMessage } from '../background-external.mjs';
 
 function draftKey(folderId, relPath) {
   return `${folderId}:${relPath}`;
@@ -71,6 +72,8 @@ export function createWorkspace() {
   let dirHandle = null;
   let meta = null;
   let savedFolderRecord = null;
+  let handoffId = new URLSearchParams(globalThis.location?.search || '').get('handoff');
+  let exportedFileHandle = null;
 
   function requireHandle() {
     if (!dirHandle) throw new Error('No folder connected');
@@ -78,6 +81,10 @@ export function createWorkspace() {
 
   async function persistMeta() {
     requireHandle();
+    if (handoffId) {
+      await chrome.storage.local.set({ [`${HANDOFF_KEY_PREFIX}${handoffId}`]: meta });
+      return;
+    }
     await saveFolderWorkspace({ handle: dirHandle, meta });
   }
 
@@ -109,6 +116,27 @@ export function createWorkspace() {
     },
 
     async init() {
+      if (handoffId) {
+        if (!/^[\da-f-]{36}$/i.test(handoffId)) throw new Error('Invalid handoff');
+        const key = `${HANDOFF_KEY_PREFIX}${handoffId}`;
+        const stored = await chrome.storage.local.get(key);
+        const root = await navigator.storage.getDirectory();
+        dirHandle = await root.getDirectoryHandle(handoffId, { create: true });
+        if (stored[key]) {
+          meta = stored[key];
+        } else {
+          const pending = await chrome.storage.session.get(key);
+          const message = pending[key];
+          if (!isOpenDriveFileMessage(message)) throw new Error('Handoff expired; return to the preview and click Edit again');
+          const file = await dirHandle.getFileHandle(message.fileName, { create: true });
+          await writeFileText(file, message.markdown);
+          meta = { folderId: handoffId, folderLabel: 'Drive import (local copy)',
+            activeFile: message.fileName, sourceDriveFileId: message.fileId };
+          await persistMeta();
+          await chrome.storage.session.remove(key);
+        }
+        return { awaitingReconnect: false };
+      }
       savedFolderRecord = await loadSavedFolderWorkspace();
       if (savedFolderRecord?.handle) {
         return {
@@ -137,6 +165,8 @@ export function createWorkspace() {
 
     async openFolderPicker() {
       const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      handoffId = null;
+      exportedFileHandle = null;
       dirHandle = handle;
       meta = {
         folderId: crypto.randomUUID(),
@@ -200,6 +230,17 @@ export function createWorkspace() {
 
     async saveMarkdown(relPath, text) {
       requireHandle();
+      // Handoff maps stay in browser storage until Save chooses a local file.
+      // The Drive original is never overwritten.
+      if (handoffId) {
+        if (!exportedFileHandle || exportedFileHandle.name !== relPath) {
+          exportedFileHandle = await window.showSaveFilePicker({
+            suggestedName: relPath,
+            types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
+          });
+        }
+        await writeFileText(exportedFileHandle, text);
+      }
       const { fileHandle } = await resolvePath(dirHandle, relPath);
       await writeFileText(fileHandle, text);
       await writeDraftKey(draftKey(meta.folderId, relPath), text);
@@ -251,7 +292,7 @@ export function createWorkspace() {
 
     async importBinary(filename, buffer) {
       requireHandle();
-      const { importToMarkdown, suggestImportFilename } = await import('./import-formats.mjs');
+      const { importToMarkdown, suggestImportFilename } = await import('./import-formats-bundle.js');
       const markdown = await importToMarkdown(filename, buffer);
       let name = suggestImportFilename(filename);
       const existing = await listMarkdownInDir(dirHandle);

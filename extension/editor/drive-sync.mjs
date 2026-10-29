@@ -137,7 +137,7 @@ export async function uploadMarkdown(token, folderId, name, content, existingFil
     ? `/files/${existingFileId}?uploadType=multipart`
     : '/files?uploadType=multipart';
 
-  const res = await fetch(`${DRIVE_API}${path}`, {
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3${path}`, {
     method: existingFileId ? 'PATCH' : 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

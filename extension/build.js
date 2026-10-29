@@ -9,6 +9,12 @@ const watch = process.argv.includes('--watch');
 async function runBuild() {
   writeEmbeddedAssetsModule();
 
+  await esbuild.build({
+    entryPoints: [join(__dirname, 'editor/import-formats.mjs')],
+    outfile: join(__dirname, 'editor/import-formats-bundle.js'),
+    bundle: true, format: 'esm', platform: 'browser', target: 'es2020',
+  });
+
   const ctx = await esbuild.context({
     entryPoints: [join(__dirname, 'editor/markmap-render.mjs')],
     outfile: join(__dirname, 'editor/markmap-bundle.js'),

@@ -1,3 +1,5 @@
+import { handleExternalMessage } from './background-external.mjs';
+
 const EDITOR_URL = chrome.runtime.getURL('editor/index.html');
 const SESSION_WINDOW_KEY = 'editorWindowId';
 
@@ -53,6 +55,18 @@ async function openSidePanel() {
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+});
+
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  void handleExternalMessage(message, sender, {
+    storeHandoff: (key, value) => chrome.storage.session.set({ [key]: value }),
+    removeHandoff: (key) => chrome.storage.session.remove(key),
+    openEditorWindow: (requestId) => chrome.windows.create({
+      url: `${EDITOR_URL}?handoff=${requestId}`,
+      type: 'popup', width: 1280, height: 800,
+    }),
+  }).then(sendResponse).catch(() => sendResponse({ ok: false, error: 'handoff failed' }));
+  return true;
 });
 
 chrome.action.onClicked.addListener(() => {

@@ -1283,3 +1283,10 @@ body.side-panel-mode #btn-open-full-editor:hover {
 .link-picker-error.hidden {
   display: none;
 }
+.handoff-notice {
+  margin: 0;
+  padding: 8px 16px;
+  background: #eaf2ff;
+  color: #172554;
+  font: 13px system-ui, sans-serif;
+}

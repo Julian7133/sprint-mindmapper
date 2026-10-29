@@ -126,9 +126,9 @@ Handoff to the extension: the viewer calls a custom URL scheme `sprintmindmap-ed
 | 2.1 | Stand up hosting (e.g. Cloud Run or Netlify) with HTTPS; pick a domain | ½ day | — |
 | 2.2 | Build `preview-app`: GIS OAuth implicit flow with `drive.file` scope; `files.get` for the file ID; render markmap client-side using the existing `markmap-convert.mjs` + `markmap-view` bundle | 3–4 days | 2.1 |
 | 2.3 | Port `render-markmap.sh` logic to pure JS so the preview works without shell/Puppeteer | 1 day | 2.2 |
-| 2.4 | Add "Edit in Sprint Mindmap" button: `protocol_handlers` callback path if installed → open extension window with file; else link to CWS listing | 1 day | 1.4 (extension), 2.2 |
-| 2.5 | Extension side: register `protocol_handlers` for `sprintmindmap-edit://`; on launch, resolve fileId via Drive API, download content, switch active file | 1 day | 1.4 |
-| 2.6 | Marketplace setup: Google Cloud project, OAuth consent screen (sensitive scope: `drive.file`), enable Google Workspace Marketplace SDK, configure app listing, Drive integration MIME types, branding assets, privacy policy | 1–2 days | 2.2 |
+| 2.4 | Implemented 2026-10-24: "Edit in AuraMindmap" sends file ID, name and current markdown to the extension; missing extension → CWS listing | 1 day | 1.4 (extension), 2.2 |
+| 2.5 | Implemented 2026-10-24: `onMessageExternal` validates allowed origins and file data, opens a dedicated editor with a local copy; no tokens transferred | 1 day | 1.4 |
+| 2.6 | Marketplace setup: Google Cloud project, OAuth consent screen (non-sensitive scope: `drive.file`), enable Google Workspace Marketplace SDK, configure app listing, Drive integration MIME types, branding assets, privacy policy | 1–2 days | 2.2 |
 | 2.7 | Submit for OAuth verification (record demo video) + Marketplace review | 1–2 days hands-on, 1–3 weeks review | all above |
 | 2.8 | Verify search visibility: search Marketplace for "mindmap" / "markdown" and confirm the listing appears; iterate on listing title/keywords | ½ day | 2.7 |
 
@@ -145,10 +145,10 @@ Handoff to the extension: the viewer calls a custom URL scheme `sprintmindmap-ed
 
 | Risk | Mitigation |
 |---|---|
-| OAuth verification requires a security assessment for "restricted" scopes | Use `drive.file` only (not full `drive`); this scope is sensitive but not restricted and usually avoids paid assessment. |
+| OAuth verification requires a security assessment for "restricted" scopes | Use `drive.file` only (not full `drive`); this scope is non-sensitive. Follow any app/branding verification requested by Google ([scope reference](https://developers.google.com/workspace/drive/api/guides/api-specific-auth)). |
 | Reviewers reject the app as "launcher-only" | Make the preview genuinely polished: pan/zoom, expand/collapse, export PNG/SVG/HTML from the viewer. Polish the preview itself, not the launch button. |
 | Extension not yet published when the Drive app goes live | The "Edit" button deep-links to the CWS listing; works either way. |
-| Custom protocol handler UX is awkward on first run | Fall back to clipboard copy of the file ID + a "Paste file ID in the extension" affordance as a bridge. |
+| Extension missing on first use | Open the CWS listing; after installation, return to the preview, reload and click Edit again. No paste-ID workflow. |
 
 ### 2.6 Acceptance
 

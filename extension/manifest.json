@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AuraMindmap",
   "version": "0.1.0",
-  "description": "Sprint mindmap editor — plan your sprints as mind maps",
+  "description": "Beautiful mind maps saved as plain markdown. Made for Google Drive™. Works with your agents & AI. Offline, no account.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": { "128": "icons/icon-128.png" }
@@ -15,7 +15,10 @@
       "description": "Open AuraMindmap editor"
     }
   },
-  "permissions": ["storage", "sidePanel", "windows"],
+  "permissions": ["storage", "sidePanel"],
+  "externally_connectable": {
+    "matches": ["https://aura.berlow.de/*", "http://localhost/*"]
+  },
   "optional_permissions": ["identity"],
   "oauth2": {
     "client_id": "REPLACE_WITH_OAUTH_CLIENT_ID.apps.googleusercontent.com",

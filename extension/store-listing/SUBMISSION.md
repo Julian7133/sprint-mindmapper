@@ -21,10 +21,10 @@ Upload `auramindmap-extension.zip` to the developer dashboard. Do **not** includ
 
 Use copy from [LISTING.md](./LISTING.md):
 
-- **Title:** AuraMindmap — Sprint Mind Map Editor
-- **Summary:** short description (132 chars)
+- **Title:** AuraMindmap (manifest `name`)
+- **Summary:** manifest `description`, identical to the summary in LISTING.md (≤132 chars)
 - **Description:** detailed description
-- **Category:** Productivity
+- **Category:** Productivity › Workflow & Planning
 - **Language:** English
 
 ## Review tips

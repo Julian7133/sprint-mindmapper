@@ -105,7 +105,8 @@ describe('drive-sync API helpers', () => {
   it('uploadMarkdown posts multipart body for new files', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (_url, opts) => {
+      vi.fn(async (url, opts) => {
+        expect(url).toBe('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
         expect(opts.method).toBe('POST');
         expect(String(opts.body)).toContain('sprint.md');
         expect(String(opts.body)).toContain('# Sprint');
@@ -121,7 +122,7 @@ describe('drive-sync API helpers', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url, opts) => {
-        expect(url).toContain('/files/existing-1?uploadType=multipart');
+        expect(url).toBe('https://www.googleapis.com/upload/drive/v3/files/existing-1?uploadType=multipart');
         expect(opts.method).toBe('PATCH');
         expect(String(opts.body)).toContain('"name":"sprint.md"');
         expect(String(opts.body)).not.toContain('"parents"');
@@ -153,7 +154,7 @@ describe('drive-sync orchestration', () => {
           };
         }
 
-        expect(url).toContain('/files/existing-1?uploadType=multipart');
+        expect(url).toBe('https://www.googleapis.com/upload/drive/v3/files/existing-1?uploadType=multipart');
         expect(opts.method).toBe('PATCH');
         expect(String(opts.body)).toContain('"name":"sprint.md"');
         expect(String(opts.body)).toContain('# Updated Sprint');
