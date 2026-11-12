@@ -612,3 +612,39 @@ describe('createWorkspace', () => {
     });
   });
 });
+
+describe('Drive content handoff workspace', () => {
+  it('loads exact content, preserves drafts on reload and saves a local copy without replacing the ordinary workspace', async () => {
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const key = `driveHandoff:${requestId}`;
+    const session = { [key]: { type: 'auramindmap:open-drive-file', fileId: 'drive-original', fileName: 'Sprint.md', markdown: '# Exact content\n' } };
+    const local = {};
+    const root = dir('opfs');
+    const external = file('Sprint.md');
+    vi.stubGlobal('location', { search: `?handoff=${requestId}` });
+    vi.stubGlobal('navigator', { storage: { getDirectory: async () => root } });
+    vi.stubGlobal('chrome', { storage: {
+      local: { get: async (k) => ({ [k]: local[k] }), set: async (v) => Object.assign(local, v) },
+      session: { get: async (k) => ({ [k]: session[k] }), remove: async (k) => { delete session[k]; } },
+    } });
+    const picker = vi.fn(async () => external);
+    globalThis.window = { showSaveFilePicker: picker };
+    const ws = createWorkspace();
+    await ws.init();
+    expect(ws.isConnected()).toBe(true);
+    expect(await ws.readMarkdown('Sprint.md')).toBe('# Exact content\n');
+    expect((await ws.getInfo()).activeFile).toBe('Sprint.md');
+    expect(session[key]).toBeUndefined();
+    expect(await loadSavedFolderWorkspace()).toBeUndefined();
+    await ws.writeDraft('Sprint.md', '# Edited draft\n');
+    const reloaded = createWorkspace();
+    await reloaded.init();
+    expect(await reloaded.readDraft('Sprint.md')).toBe('# Edited draft\n');
+    await reloaded.saveMarkdown('Sprint.md', '# Saved copy\n');
+    expect(external.text).toBe('# Saved copy\n');
+    expect(picker).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: 'Sprint.md' }));
+    expect(await reloaded.readMarkdown('Sprint.md')).toBe('# Saved copy\n');
+    expect(local[key].sourceDriveFileId).toBe('drive-original');
+    expect(await loadSavedFolderWorkspace()).toBeUndefined();
+  });
+});

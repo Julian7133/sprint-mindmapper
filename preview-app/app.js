@@ -1,3 +1,4 @@
+import { sendEditHandoff } from './edit-handoff.js';
 import { CONFIG } from './config.js';
 import {
   createTokenClient,
@@ -16,6 +17,8 @@ let currentFileName = 'mindmap';
 
 /** @type {string} */
 let currentHtml = '';
+let currentMarkdown = '';
+let currentDriveFileName = 'mindmap.md';
 
 /** @type {string | null} */
 let accessToken = null;
@@ -26,7 +29,6 @@ const els = {
   preview: /** @type {HTMLIFrameElement} */ (document.getElementById('preview')),
   editBtn: /** @type {HTMLButtonElement} */ (document.getElementById('edit-btn')),
   downloadHtmlBtn: /** @type {HTMLButtonElement} */ (document.getElementById('download-html-btn')),
-  downloadSvgBtn: /** @type {HTMLButtonElement} */ (document.getElementById('download-svg-btn')),
   connectBtn: /** @type {HTMLButtonElement | null} */ (document.getElementById('connect-btn')),
 };
 
@@ -46,7 +48,6 @@ function setStatus(message, kind = 'info') {
 function setToolbarEnabled(ready) {
   els.editBtn.disabled = !ready;
   els.downloadHtmlBtn.disabled = !ready;
-  els.downloadSvgBtn.disabled = !ready;
 }
 
 /**
@@ -59,7 +60,13 @@ function showPreview(html, fileName) {
     currentFileName = fileName.replace(/\.md$/i, '') || 'mindmap';
     els.title.textContent = currentFileName;
   }
-  els.preview.srcdoc = html;
+  els.preview.onload = () => {
+    // Send once to our newly loaded opaque-origin sandbox. Never resend file
+    // content after a navigation initiated from inside the rendered map.
+    els.preview.onload = null;
+    els.preview.contentWindow.postMessage({ type: 'auramindmap:render', html }, '*');
+  };
+  els.preview.src = './preview-frame.html';
   setToolbarEnabled(true);
   setStatus('');
 }
@@ -95,67 +102,15 @@ async function loadDriveFile(token, fileId) {
 
   setStatus('Rendering mind map…');
   const html = await renderMarkmapHtml(markdown);
-  showPreview(html, meta.name ?? 'mindmap');
+  currentMarkdown = markdown;
+  currentDriveFileName = meta.name ?? 'mindmap.md';
+  showPreview(html, currentDriveFileName);
 }
 
-/**
- * @param {string} fileId
- * @returns {Promise<boolean>}
- */
-function sendEditHandoff(fileId) {
-  return new Promise((resolve) => {
-    if (!globalThis.chrome?.runtime?.sendMessage) {
-      resolve(false);
-      return;
-    }
-
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        resolve(false);
-      }
-    }, 800);
-
-    try {
-      chrome.runtime.sendMessage(
-        CONFIG.EXTENSION_ID,
-        { type: 'auramindmap:open-drive-file', fileId },
-        (resp) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          if (chrome.runtime.lastError || !resp?.ok) {
-            resolve(false);
-            return;
-          }
-          resolve(true);
-        },
-      );
-    } catch {
-      clearTimeout(timer);
-      if (!settled) {
-        settled = true;
-        resolve(false);
-      }
-    }
-  });
-}
-
-/**
- * @param {string} fileId
- */
-async function fallbackToExtensionListing(fileId) {
-  try {
-    await navigator.clipboard.writeText(fileId);
-  } catch {
-    /* clipboard may be blocked */
-  }
-  window.open(CONFIG.CWS_LISTING_URL, '_blank', 'noopener,noreferrer');
-  setStatus(
-    'Install the AuraMindmap extension, then paste the copied file ID to open this map for editing.',
-    'info',
-  );
+function fallbackToExtensionListing() {
+  setStatus('Install AuraMindmap, then return to this preview, reload it and click Edit in AuraMindmap again.');
+  // Same-tab navigation also works when the browser blocks delayed popups.
+  window.location.assign(CONFIG.CWS_LISTING_URL);
 }
 
 /**
@@ -176,19 +131,6 @@ function downloadBlob(content, filename, mimeType) {
 function downloadHtmlExport() {
   if (!currentHtml) return;
   downloadBlob(currentHtml, `${currentFileName}.html`, 'text/html;charset=utf-8');
-}
-
-function downloadSvgExport() {
-  if (!currentHtml) return;
-  const doc = new DOMParser().parseFromString(currentHtml, 'text/html');
-  const svg = doc.querySelector('svg');
-  if (!svg) {
-    setStatus('No SVG found in the rendered map.', 'error');
-    return;
-  }
-  const serializer = new XMLSerializer();
-  const svgText = serializer.serializeToString(svg);
-  downloadBlob(svgText, `${currentFileName}.svg`, 'image/svg+xml;charset=utf-8');
 }
 
 function requestOAuthAndLoad() {
@@ -230,12 +172,20 @@ async function boot() {
 
   els.editBtn.addEventListener('click', async () => {
     if (!currentFileId) return;
-    const ok = await sendEditHandoff(currentFileId);
-    if (!ok) await fallbackToExtensionListing(currentFileId);
+    els.editBtn.disabled = true;
+    try {
+      const result = await sendEditHandoff(CONFIG.EXTENSION_ID, {
+        fileId: currentFileId, fileName: currentDriveFileName, markdown: currentMarkdown,
+      });
+      if (result.status === 'unavailable') fallbackToExtensionListing();
+      else if (result.status === 'rejected') setStatus(`Could not open editor: ${result.error || 'handoff rejected'}`, 'error');
+      else setStatus('Opened a local copy in AuraMindmap. Save in the editor to choose a .md file on your computer.');
+    } finally {
+      els.editBtn.disabled = false;
+    }
   });
 
   els.downloadHtmlBtn.addEventListener('click', downloadHtmlExport);
-  els.downloadSvgBtn.addEventListener('click', downloadSvgExport);
 
   if (els.connectBtn) {
     els.connectBtn.addEventListener('click', requestOAuthAndLoad);

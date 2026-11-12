@@ -1058,6 +1058,10 @@ async function openFolderPicker() {
   try {
     setStatus('choose a folder in the picker — not a .md file');
     await ws.openFolderPicker();
+    const url = new URL(location.href);
+    url.searchParams.delete('handoff');
+    history.replaceState(null, '', url);
+    document.querySelector('.handoff-notice')?.remove();
     hideReconnectPrompt();
     updateWorkspaceLabel();
     updateFolderConnectUi();
@@ -1414,6 +1418,12 @@ async function boot() {
   }
   try {
     await loadInitialData();
+    if (new URLSearchParams(location.search).has('handoff')) {
+      const notice = document.createElement('p');
+      notice.className = 'handoff-notice';
+      notice.textContent = 'Editing a local copy from Google Drive. Save chooses a .md file on your computer; the Drive original stays unchanged.';
+      document.getElementById('map').before(notice);
+    }
   } catch (err) {
     console.error(err);
     setStatus('load error', 'error');
@@ -1423,6 +1433,6 @@ async function boot() {
 
 boot().catch((err) => {
   console.error(err);
-  setStatus('load error', 'error');
   showWelcomeForDisconnectedFolder();
+  setStatus(err.message || 'load error', 'error');
 });

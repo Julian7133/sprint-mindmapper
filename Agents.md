@@ -2,7 +2,7 @@
 
 Cross-provider reference for all AI agents (Claude, Cursor, OpenCode, etc.) working on this project. **Read this before touching any code.** This is maintained by the primary orchestrating agent; do not overwrite without updating the timestamp.
 
-_Last updated: 2026-09-08_
+_Last updated: 2026-10-24_
 
 ---
 
@@ -198,14 +198,25 @@ extension/
 ## Preview App Architecture (Phase 2)
 
 ```
-preview-app/               # Hosted at e.g. preview.auramindmap.com (Netlify)
+preview-app/               # Hosted at e.g. aura.berlow.de (Netlify)
   index.html               # GIS OAuth, reads ?fileId=, renders markmap read-only
   app.js                   # OAuth flow (drive.file scope), files.get, markmap render
   markmap-render.mjs       # Shared with extension: in-browser markmap renderer
   style.css
 ```
 
-Protocol handoff: `auramindmap-edit://drive/<fileId>` (registered via `protocol_handlers` in extension manifest). Fallback: link to CWS listing.
+Handoff: `chrome.runtime.sendMessage` to the published extension ID; production
+origin `https://aura.berlow.de`, dev origin `http://localhost:8888`.
+`extension/background.js` imports `background-external.mjs`, validates the origin
+and a token-free `{ type, fileId, fileName, markdown }` message, and opens a new
+editor window with `?handoff=<requestId>`. The workspace imports a local copy into
+browser file storage; Save chooses a local `.md` file. No Drive writeback. Missing
+extension: same-tab navigation to the CWS listing, return/reload/retry afterwards.
+Preview rendering runs inside `preview-frame.html`, an opaque-origin sandbox with
+its own CSP for self-contained markmap inline scripts. The OAuth page retains a
+strict CSP; frame network access is blocked. Preview SVG export is withdrawn.
+Extension imports use `import-formats-bundle.js` (esbuild); XML input uses
+`TextDecoder` so both browser ArrayBuffers and Node Buffers work.
 
 ---
 

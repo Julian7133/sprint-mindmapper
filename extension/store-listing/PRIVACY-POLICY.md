@@ -32,7 +32,6 @@ You can disable Drive sync and sign out at any time from the file panel.
 |---|---|
 | `storage` | Save drafts, recent files, and workspace preferences locally |
 | `sidePanel` | Optional companion side panel for quick capture |
-| `windows` | Open the editor in a dedicated window |
 | `identity` (optional) | Google Drive sync only, when you enable it |
 
 The File System Access API does not require an extension permission.

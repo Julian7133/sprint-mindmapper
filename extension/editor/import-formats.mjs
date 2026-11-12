@@ -107,9 +107,9 @@ export async function importToMarkdown(filename, buffer) {
   const lower = filename.toLowerCase();
   let md;
   if (lower.endsWith('.opml')) {
-    md = parseOpml(buffer.toString('utf8'));
+    md = parseOpml(new TextDecoder().decode(buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer));
   } else if (lower.endsWith('.mm')) {
-    md = parseFreemind(buffer.toString('utf8'));
+    md = parseFreemind(new TextDecoder().decode(buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer));
   } else if (lower.endsWith('.xmind')) {
     md = await parseXmind(buffer);
   } else {

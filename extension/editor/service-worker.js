@@ -1,4 +1,4 @@
-const CACHE_NAME = 'auramindmap-ext-v1';
+const CACHE_NAME = 'auramindmap-ext-v2';
 
 const SHELL_PATHS = [
   'editor/index.html',
@@ -16,7 +16,8 @@ const SHELL_PATHS = [
   'editor/priority-hotkeys.mjs',
   'editor/type-to-edit.mjs',
   'editor/paste-nodes.mjs',
-  'editor/import-formats.mjs',
+  'editor/import-formats-bundle.js',
+  'background-external.mjs',
   'editor/vendor/MindElixir.js',
   'editor/vendor/style.css',
 ];
