@@ -65,12 +65,12 @@ mind map, mindmap, markdown, markmap, outline, sprint planning, AI
 
 ## Support & privacy
 
-Verified in Chromium on 2026-10-24:
+Published and checked in Chromium on 2026-11-12:
 
-- Privacy policy: https://berlow.de/datenschutz — existing website policy; Julian must extend it for AuraMindmap Preview/Extension, Google Drive, hosting and local handoff copies before submission
-- Support/contact: https://berlow.de/kontakt — existing general contact page; Julian must add AuraMindmap support guidance
+- Privacy policy: https://berlow.de/datenschutz — AuraMindmap section: `#auramindmap`
+- Support/contact: https://berlow.de/auramindmap/support
 - Imprint: https://berlow.de/impressum — existing page with contact information
-- Terms of service: missing (`/nutzungsbedingungen` has no matching page); Julian must provide a suitable public HTTPS page
-- Preview / Drive Open URL (planned deployment): https://aura.berlow.de/
+- Terms of service: https://berlow.de/auramindmap/nutzungsbedingungen
+- Preview / Drive Open URL: https://aura.berlow.de/
 
-No legal text was created in this dev round.
+The product-specific privacy, support and terms pages are live on berlow.de.

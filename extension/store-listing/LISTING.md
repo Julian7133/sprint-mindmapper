@@ -74,13 +74,17 @@ No `tabs`, `host_permissions`, or broad file access permissions are requested.
 - [x] 1280×800 screenshot: `screenshots/editor-1280x800.png` (real editor, neutral sample map, no alpha)
 - [x] 440×280 small promo tile (optional): `promo/promo-440x280.png` (source: `promo/promo-440x280.html`)
 - [x] 16 / 48 / 128 / 256 px icons in `extension/icons/` (see icon note in the launch checklist)
-- [ ] Privacy policy URL: https://berlow.de/datenschutz — Julian must extend the existing website policy for AuraMindmap before submission
+- [x] Privacy policy URL: https://berlow.de/datenschutz — AuraMindmap section published and checked on 2026-11-12
 - [ ] Replace `REPLACE_WITH_OAUTH_CLIENT_ID` in `extension/manifest.json:21` with the Chrome-extension OAuth client
 
 ## Support URL / homepage
 
-Homepage (planned deployment): https://aura.berlow.de
+Homepage: https://aura.berlow.de
 
-Support/contact: https://berlow.de/kontakt · Imprint: https://berlow.de/impressum
+Support/contact: https://berlow.de/auramindmap/support · Imprint: https://berlow.de/impressum
 
-Privacy policy: https://berlow.de/datenschutz exists, but Julian must extend it for AuraMindmap (Preview, Extension, Google Drive and local handoff copies) before submission. Terms of service are still missing. Contact pages were verified in Chromium on 2026-10-24; no product-specific support page was found.
+Privacy policy: https://berlow.de/datenschutz#auramindmap
+
+Terms of service: https://berlow.de/auramindmap/nutzungsbedingungen
+
+Product-specific privacy, support and terms pages were published and checked in Chromium on 2026-11-12.

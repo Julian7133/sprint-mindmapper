@@ -57,7 +57,10 @@ http://localhost:8888/?state=%7B%22ids%22%3A%5B%22YOUR_FILE_ID%22%5D%2C%22action
 2. Create an app listing:
    - **App type:** Drive / Web app (not Editor add-on)
    - **Install URL / Open URL:** `https://aura.berlow.de/`
-   - **Support URL:** https://berlow.de/kontakt (existing contact page; Julian must add AuraMindmap support guidance). **Privacy policy URL:** https://berlow.de/datenschutz (existing website policy; Julian must extend it for Preview/Extension before submission). **Imprint:** https://berlow.de/impressum. Terms of service are missing; Julian must supply them. No legal text is invented here.
+   - **Support URL:** https://berlow.de/auramindmap/support
+   - **Privacy policy URL:** https://berlow.de/datenschutz (AuraMindmap section: `#auramindmap`)
+   - **Terms of service URL:** https://berlow.de/auramindmap/nutzungsbedingungen
+   - **Imprint:** https://berlow.de/impressum
    - **Category:** Productivity
    - **Search keywords:** mind map, mindmap, markdown, sprint planning, markmap
 3. Copy for the listing lives in `preview-app/store-listing/LISTING.md`.
