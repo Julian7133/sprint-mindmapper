@@ -6,9 +6,11 @@ Stand: 24.10.2026. Werte mit `REPLACE_…` sind Platzhalter; hier werden keine I
 
 - Code und Assets aus der gesicherten Aura-Runde nach `main` übernommen. Validierung: Editor 87/87 und Round-trip, Extension 70/70, Preview 13/13; Browser-E2E 11 bestanden, 2 vorhandene Ordner-Picker-Skips.
 - **CWS-Sichtbarkeit: public**, von Julian am 12.11. entschieden.
-- **Icon:** Neues erkennbares A mit Mindmap-Knoten beauftragt; Entwurf und Freigabe stehen aus. Terra-Child: @thread:thr_msq2ukmxx2.
+- **Icon:** Terras A mit Mindmap-Knoten von Julian freigegeben und übernommen; Extension- und Marketplace-PNGs aus gemeinsamer SVG-Quelle erzeugt und Store-ZIP neu gepackt. Terra-Child: @thread:thr_msq2ukmxx2.
 - **Datenschutz, Nutzungsbedingungen, Support:** im Website-Child @thread:thr_kw6iygnxba beauftragt; vor Veröffentlichung selbst prüfen.
-- **DNS:** CNAME `aura` in Zone `berlow.de` noch nicht gesetzt. Ziel erst aus dem tatsächlichen Netlify-Projekt übernehmen.
+- **Netlify:** Projekt `delightful-wisp-cce5f2`, Site-ID `e217f9db-d2ec-4213-a4e4-47c8225692a1`, Team Berlow. GitHub `Julian7133/sprint-mindmapper`, Branch `main`, Base `preview-app`, Publish `.`. Erster Deploy erfolgreich; Production öffentlich. Hauptseite und Sandbox liefern HTTP 200 mit den konfigurierten getrennten CSP-/Frame-Headern.
+- **DNS:** In Zone `berlow.de`: CNAME `aura` → `delightful-wisp-cce5f2.netlify.app`. Netlify fordert außerdem einen TXT-Eigentumsnachweis; Werte an Julian zur Einrichtung übergeben. Custom-Domain-Verknüpfung und HTTPS stehen noch aus.
+- **Google Cloud:** Projekt `AuraMindmap`, ID `berlow-auramindmap`, in Organisation `berlow.de` angelegt. APIs und Consent-Screen werden eingerichtet; echte OAuth-/Extension-IDs bleiben Block 2.
 - Weiterer Launch-Block geplant für Montag, 23.11.2026.
 
 ## Finale Runde 24.10.

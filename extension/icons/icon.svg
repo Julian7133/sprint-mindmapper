@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#3949ab"/>
+      <stop offset="1" stop-color="#5e35b1"/>
+    </linearGradient>
+  </defs>
+  <!-- 384 × 384 artwork: 96 × 96 on the 128 px store canvas. -->
+  <rect x="64" y="64" width="384" height="384" rx="100" fill="url(#violet)"/>
+  <!-- The A is also a three-node map: each terminal is a node. -->
+  <path d="M164 353 L256 151 L348 353 M198 279 H314" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="151" r="22" fill="#dcd2ff"/>
+  <circle cx="164" cy="353" r="22" fill="#dcd2ff"/>
+  <circle cx="348" cy="353" r="22" fill="#dcd2ff"/>
+</svg>
