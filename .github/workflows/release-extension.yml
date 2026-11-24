@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Determine version
         id: version
@@ -46,7 +46,7 @@ jobs:
           fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -87,7 +87,7 @@ jobs:
           echo "Packaged ../$OUT"
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: auramindmap-${{ steps.version.outputs.name }}
           path: auramindmap-${{ steps.version.outputs.name }}.zip
@@ -95,7 +95,7 @@ jobs:
 
       - name: Attach ZIP to GitHub Release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: auramindmap-${{ steps.version.outputs.name }}.zip
           draft: true
