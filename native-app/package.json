@@ -17,20 +17,20 @@
     "icons": "tauri icon src-tauri/icons/app-icon.png"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.11.1",
-    "@tauri-apps/plugin-dialog": "^2.7.3",
-    "@tauri-apps/plugin-opener": "^2.5.5",
-    "@tauri-apps/plugin-store": "^2.4.4",
-    "fast-xml-parser": "^5.2.5",
-    "jszip": "^3.10.1"
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-opener": "^2.7.3",
+    "@tauri-apps/plugin-store": "^2.5.1",
+    "fast-xml-parser": "^5.12.1",
+    "jszip": "^3.10.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@tauri-apps/cli": "^2.11.4",
-    "d3": "^7.9.0",
-    "esbuild": "^0.25.12",
+    "@playwright/test": "^1.65.1",
+    "@tauri-apps/cli": "^2.12.6",
+    "d3": "^7.9.2",
+    "esbuild": "^0.28.2",
     "markmap-common": "^0.18.7",
-    "markmap-lib": "^0.18.10",
+    "markmap-lib": "^0.18.13",
     "markmap-view": "^0.18.7"
   },
   "allowScripts": {
