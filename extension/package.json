@@ -12,13 +12,13 @@
     "pack:store": "node scripts/pack-store.mjs"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.2.5",
-    "jszip": "^3.10.1",
+    "fast-xml-parser": "^5.12.1",
+    "jszip": "^3.10.2",
     "markmap-lib": "^0.18",
     "markmap-view": "^0.18"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48",
+    "@playwright/test": "^1.65",
     "esbuild": "^0.28.0",
     "vitest": "^4.1.11"
   },
