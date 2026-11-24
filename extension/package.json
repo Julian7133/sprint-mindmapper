@@ -20,7 +20,7 @@
   "devDependencies": {
     "@playwright/test": "^1.48",
     "esbuild": "^0.28.0",
-    "vitest": "^4.1.11"
+    "vitest": "^5.1.1"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
